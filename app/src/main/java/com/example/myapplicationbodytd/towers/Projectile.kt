@@ -26,7 +26,7 @@ class Projectile(
     private var distanceTraveled = 0f
     private val maxDistance = calculateDistance(startPosition, targetPosition)
     private var animationProgress = 0f
-    
+
     private val direction = PointF(
         (targetPosition.x - startPosition.x) / maxDistance,
         (targetPosition.y - startPosition.y) / maxDistance
@@ -35,29 +35,31 @@ class Projectile(
     fun update(deltaTime: Float, enemies: List<Enemy>): Enemy? {
         if (!_isActive) return null
 
-        val moveDistance = speed * deltaTime
-        currentPosition.x += direction.x * moveDistance
-        currentPosition.y += direction.y * moveDistance
-        distanceTraveled += moveDistance
+        // Chercher l'ennemi le plus proche de la position cible
+        var closestEnemy: Enemy? = null
+        var minDistance = Float.MAX_VALUE
 
-        // Mise à jour de l'animation
-        animationProgress = (animationProgress + deltaTime * 10) % 1f
-
-        // Vérifier les collisions avec les ennemis
         for (enemy in enemies) {
-            if (checkCollision(enemy)) {
-                _isActive = false
-                return enemy
+            if (enemy.position != null) {
+                val distance = calculateDistance(targetPosition, enemy.position)
+                if (distance < minDistance) {
+                    minDistance = distance
+                    closestEnemy = enemy
+                }
             }
         }
 
-        // Vérifier si le projectile a atteint sa cible
-        if (distanceTraveled >= maxDistance) {
+        // Si un ennemi est trouvé dans un rayon raisonnable, on le touche directement
+        if (closestEnemy != null && minDistance < 100f) { // 100f = rayon max de détection
             _isActive = false
+            return closestEnemy
         }
 
+        // Si aucun ennemi à portée, désactiver le projectile
+        _isActive = false
         return null
     }
+
 
     private fun checkCollision(enemy: Enemy): Boolean {
         if (enemy.position == null) return false
@@ -75,7 +77,7 @@ class Projectile(
         val r = Color.red(color)
         val g = Color.green(color)
         val b = Color.blue(color)
-        
+
         // Traînée principale
         paint.color = Color.argb(150, r, g, b)
         paint.style = Paint.Style.FILL
@@ -104,4 +106,4 @@ class Projectile(
     private fun calculateDistance(start: PointF, end: PointF): Float {
         return sqrt((end.x - start.x) * (end.x - start.x) + (end.y - start.y) * (end.y - start.y))
     }
-} 
+}

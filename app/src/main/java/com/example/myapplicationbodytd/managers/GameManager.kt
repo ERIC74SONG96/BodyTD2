@@ -17,6 +17,7 @@ import com.example.myapplicationbodytd.towers.BasicTower
 import com.example.myapplicationbodytd.towers.SniperTower
 import com.example.myapplicationbodytd.towers.RapidTower
 import com.example.myapplicationbodytd.ui.Map
+import com.example.myapplicationbodytd.player.Player
 import kotlin.math.sqrt
 import kotlin.math.sin
 import kotlin.math.cos
@@ -30,7 +31,9 @@ class GameManager private constructor(private val context: Context) {
     private var isGameStarted = false
     private var selectedTowerType: TowerType? = null
     private var selectedTower: Tower? = null
-    
+    private val player = Player()
+
+
     private var screenWidth: Int = Resources.getSystem().displayMetrics.widthPixels
     private var screenHeight: Int = Resources.getSystem().displayMetrics.heightPixels
     
@@ -86,6 +89,7 @@ class GameManager private constructor(private val context: Context) {
     @Synchronized
     fun startGame() {
         try {
+            // Réinitialisation complète du jeu
             isGameStarted = true
             money = 100
             health = 100
@@ -98,17 +102,32 @@ class GameManager private constructor(private val context: Context) {
             bonusHealthReward = 10
             selectedTowerType = null
             selectedTower = null
+            lastTappedPosition = null
             
+            // Nettoyage des listes
             towers.clear()
             enemies.clear()
             
+            // Réinitialisation du WaveManager
+            waveManager.reset()
+            
+            // Notifier les listeners des changements
+            onMoneyChangedListener?.invoke(money)
+            onHealthChangedListener?.invoke(health)
+            onScoreChangedListener?.invoke(score)
+            onWaveCompleteListener?.invoke(currentWave)
+            
+            // Démarrer la musique
             soundManager.startBackgroundMusic()
             
+            // Démarrer la première vague
             val waypoints = map.getWayPoints()
             if (waypoints.isNotEmpty()) {
                 waveManager.startNextWave(waypoints.first())
                 soundManager.playSound(SoundType.WAVE_START)
             }
+            
+            Log.d("GameManager", "Jeu réinitialisé - Argent: $money, Vie: $health, Score: $score, Vague: $currentWave")
         } catch (e: Exception) {
             e.printStackTrace()
             resetGameState()
@@ -292,6 +311,19 @@ class GameManager private constructor(private val context: Context) {
         if (isGameOver) return
 
         try {
+            // Vérifier si on a atteint la limite de 7 vagues
+            if (currentWave >= 7) {
+                // Victoire ! Ajouter un bonus de score final
+                val victoryBonus = 1000 + (health * 10)  // Bonus basé sur la santé restante
+                score += victoryBonus
+                onScoreChangedListener?.invoke(score)
+                Log.d("GameManager", "Jeu terminé ! Bonus de victoire: +$victoryBonus")
+                soundManager.playSound(SoundType.GAME_OVER)
+                isGameOver = true
+                onGameOverListener?.invoke()
+                return
+            }
+
             isWaveBreak = true
             currentWaveBreakTime = 0f
             
@@ -531,6 +563,10 @@ class GameManager private constructor(private val context: Context) {
 
     private fun gameOver() {
         isGameOver = true
+        // Mettre à jour le meilleur score
+        player.updateHighScore(score)
+        val stats = player.getStats()
+        Log.d("GameManager", "Game Over - Score: $score, Meilleur score: ${stats.highScore}")
         soundManager.playSound(SoundType.GAME_OVER)
         soundManager.pauseBackgroundMusic()
         onGameOverListener?.invoke()
@@ -704,6 +740,10 @@ class GameManager private constructor(private val context: Context) {
                 Log.e("GameManager", "Erreur lors de la mise à jour du score (hit)", e)
             }
         }
+    }
+
+    fun getHighScore(): Int {
+        return player.getStats().highScore
     }
 }
 

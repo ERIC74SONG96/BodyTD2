@@ -9,6 +9,7 @@ import android.graphics.PathMeasure
 import android.graphics.LinearGradient
 import android.graphics.Shader
 import android.graphics.BlurMaskFilter
+import android.graphics.RectF
 import com.example.myapplicationbodytd.managers.GameManager
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -31,6 +32,18 @@ class Map(private val gameManager: GameManager) {
         strokeWidth = pathWidth + 20f
         color = Color.argb(50, 255, 255, 255)
         maskFilter = android.graphics.BlurMaskFilter(15f, android.graphics.BlurMaskFilter.Blur.OUTER)
+    }
+
+    private val bodyPaint = Paint().apply {
+        color = Color.argb(50, 200, 200, 200)
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+    
+    private val organPaint = Paint().apply {
+        color = Color.argb(30, 150, 150, 150)
+        style = Paint.Style.FILL
+        isAntiAlias = true
     }
 
     init {
@@ -126,6 +139,12 @@ class Map(private val gameManager: GameManager) {
 
         // Dessiner les emplacements de tours valides avec effet de pulsation
         drawTowerPlacements(canvas, paint)
+
+        // Dessiner le fond (corps humain)
+        drawBody(canvas)
+        
+        // Dessiner les organes
+        drawOrgans(canvas)
     }
 
     private fun drawGrid(canvas: Canvas, paint: Paint, screenWidth: Int, screenHeight: Int) {
@@ -221,6 +240,62 @@ class Map(private val gameManager: GameManager) {
             paint.color = Color.argb(120, 0, 255, 0)
             canvas.drawCircle(point.x, point.y, minTowerDistance/3 * pulseScale, paint)
         }
+    }
+
+    private fun drawBody(canvas: Canvas) {
+        val screenWidth = gameManager.getScreenWidth().toFloat()
+        val screenHeight = gameManager.getScreenHeight().toFloat()
+        
+        // Dessiner le contour du corps
+        val bodyPath = Path()
+        bodyPath.moveTo(screenWidth * 0.3f, 0f)  // Tête
+        bodyPath.lineTo(screenWidth * 0.7f, 0f)
+        bodyPath.lineTo(screenWidth * 0.8f, screenHeight * 0.2f)  // Épaules
+        bodyPath.lineTo(screenWidth * 0.9f, screenHeight * 0.3f)
+        bodyPath.lineTo(screenWidth, screenHeight * 0.4f)
+        bodyPath.lineTo(screenWidth, screenHeight * 0.8f)  // Hanches
+        bodyPath.lineTo(screenWidth * 0.8f, screenHeight)
+        bodyPath.lineTo(screenWidth * 0.2f, screenHeight)
+        bodyPath.lineTo(0f, screenHeight * 0.8f)
+        bodyPath.lineTo(0f, screenHeight * 0.4f)
+        bodyPath.lineTo(screenWidth * 0.1f, screenHeight * 0.3f)
+        bodyPath.lineTo(screenWidth * 0.2f, screenHeight * 0.2f)
+        bodyPath.close()
+        
+        canvas.drawPath(bodyPath, bodyPaint)
+    }
+
+    private fun drawOrgans(canvas: Canvas) {
+        val screenWidth = gameManager.getScreenWidth().toFloat()
+        val screenHeight = gameManager.getScreenHeight().toFloat()
+        
+        // Cœur
+        val heartPath = Path()
+        heartPath.moveTo(screenWidth * 0.4f, screenHeight * 0.2f)
+        heartPath.quadTo(screenWidth * 0.5f, screenHeight * 0.1f, screenWidth * 0.6f, screenHeight * 0.2f)
+        heartPath.quadTo(screenWidth * 0.7f, screenHeight * 0.3f, screenWidth * 0.5f, screenHeight * 0.4f)
+        heartPath.quadTo(screenWidth * 0.3f, screenHeight * 0.3f, screenWidth * 0.4f, screenHeight * 0.2f)
+        canvas.drawPath(heartPath, organPaint)
+        
+        // Poumons
+        canvas.drawOval(RectF(screenWidth * 0.3f, screenHeight * 0.25f, screenWidth * 0.45f, screenHeight * 0.35f), organPaint)
+        canvas.drawOval(RectF(screenWidth * 0.55f, screenHeight * 0.25f, screenWidth * 0.7f, screenHeight * 0.35f), organPaint)
+        
+        // Estomac
+        canvas.drawOval(RectF(screenWidth * 0.25f, screenHeight * 0.35f, screenWidth * 0.35f, screenHeight * 0.45f), organPaint)
+        
+        // Foie
+        canvas.drawOval(RectF(screenWidth * 0.35f, screenHeight * 0.4f, screenWidth * 0.45f, screenHeight * 0.5f), organPaint)
+        
+        // Intestins
+        val intestinePath = Path()
+        intestinePath.moveTo(screenWidth * 0.35f, screenHeight * 0.45f)
+        for (i in 1..10) {
+            val x = screenWidth * (0.35f + i * 0.05f)
+            val y = screenHeight * (0.45f + 0.05f * sin(i * PI.toFloat() / 2))
+            intestinePath.lineTo(x, y)
+        }
+        canvas.drawPath(intestinePath, organPaint)
     }
 
     fun isValidTowerLocation(x: Float, y: Float): Boolean {
