@@ -37,12 +37,12 @@ abstract class Enemy(
 
         // Mise à jour de l'animation
         animationProgress = (animationProgress + deltaTime * speed * 0.01f) % 1f
-        
+
         // Mise à jour de l'animation de dégâts
         if (damageAnimationProgress > 0) {
             damageAnimationProgress = (damageAnimationProgress - deltaTime * 2f).coerceAtLeast(0f)
         }
-        
+
         // Mise à jour de l'animation de mort
         if (isDying) {
             deathAnimationProgress = (deathAnimationProgress + deltaTime * 2f).coerceAtMost(1f)
@@ -58,9 +58,9 @@ abstract class Enemy(
 
         val currentPoint = waypoints[currentWaypointIndex]
         val nextPoint = waypoints[currentWaypointIndex + 1]
-        
+
         progress += speed * deltaTime / calculateDistance(currentPoint, nextPoint)
-        
+
         if (progress >= 1f) {
             progress = 0f
             currentWaypointIndex++
@@ -78,18 +78,18 @@ abstract class Enemy(
 
     fun draw(canvas: Canvas, paint: Paint) {
         if (isDead) return
-        
+
         // Effet de mort
         if (isDying) {
             drawDeathEffect(canvas, paint)
             return
         }
-        
+
         // Effet de dégâts
         if (damageAnimationProgress > 0) {
             drawDamageEffect(canvas, paint)
         }
-        
+
         // Dessiner la barre de vie
         drawHealthBar(canvas, paint)
 
@@ -153,30 +153,30 @@ abstract class Enemy(
         // Effet de disparition progressive
         val scale = 1f - deathAnimationProgress
         val alpha = (255 * (1 - deathAnimationProgress)).toInt()
-        
+
         // Effet de rotation
         val rotation = deathAnimationProgress * 360f
-        
+
         canvas.save()
         canvas.rotate(rotation, position.x, position.y)
         canvas.scale(scale, scale, position.x, position.y)
-        
+
         // Dessiner l'ennemi avec transparence
         paint.alpha = alpha
         drawEnemy(canvas, paint)
-        
+
         canvas.restore()
     }
 
     abstract fun drawEnemy(canvas: Canvas, paint: Paint)
-    
+
     protected abstract fun getEnemyRadius(): Float
 
     fun takeDamage(amount: Float): Boolean {
         health -= amount
         damageAnimationProgress = 1f
         lastDamageTime = System.currentTimeMillis() / 1000f
-        
+
         if (health <= 0 && !isDying) {
             isDying = true
             return true
@@ -194,85 +194,3 @@ abstract class Enemy(
     }
 }
 
-
-
-class Bacteria(position: PointF) : Enemy(
-    position = position,
-    health = 100f,
-    maxHealth = 100f,
-    speed = 100f,
-    damage = 2f,
-    reward = 20
-) {
-    override val type: EnemyType = EnemyType.BACTERIA
-
-    override fun drawEnemy(canvas: Canvas, paint: Paint) {
-        // Effet de pulsation
-        val pulseScale = 1f + 0.08f * sin(animationProgress * 3 * PI.toFloat())
-        
-        // Effet de brillance
-        val glowPaint = Paint(paint).apply {
-            color = Color.argb(100, 0, 255, 0)
-            maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.OUTER)
-        }
-        canvas.drawCircle(position.x, position.y, 17f * pulseScale, glowPaint)
-        
-        // Corps principal
-        paint.color = Color.rgb(0, 255, 0)
-        canvas.drawCircle(position.x, position.y, 15f * pulseScale, paint)
-        
-        // Détails
-        paint.color = Color.WHITE
-        canvas.drawCircle(position.x - 5f * pulseScale, position.y - 5f * pulseScale, 3f * pulseScale, paint)
-        canvas.drawCircle(position.x + 5f * pulseScale, position.y + 5f * pulseScale, 3f * pulseScale, paint)
-    }
-    
-    override fun getEnemyRadius(): Float = 15f
-}
-
-class Parasite(position: PointF) : Enemy(
-    position = position,
-    health = 200f,
-    maxHealth = 200f,
-    speed = 50f,
-    damage = 3f,
-    reward = 30
-) {
-    override val type: EnemyType = EnemyType.PARASITE
-
-    override fun drawEnemy(canvas: Canvas, paint: Paint) {
-        // Effet de pulsation
-        val pulseScale = 1f + 0.05f * sin(animationProgress * 2 * PI.toFloat())
-        
-        // Effet de brillance
-        val glowPaint = Paint(paint).apply {
-            color = Color.argb(100, 128, 0, 128)
-            maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.OUTER)
-        }
-        canvas.drawCircle(position.x, position.y, 22f * pulseScale, glowPaint)
-        
-        // Corps principal
-        paint.color = Color.rgb(128, 0, 128)
-        canvas.drawCircle(position.x, position.y, 20f * pulseScale, paint)
-        
-        // Détails
-        paint.color = Color.WHITE
-        canvas.drawCircle(position.x, position.y, 5f * pulseScale, paint)
-        
-        // Tentacules
-        val numTentacles = 8
-        for (i in 0 until numTentacles) {
-            val angle = i * (2 * PI.toFloat() / numTentacles) + animationProgress * PI.toFloat()
-            val tentacleLength = 10f * pulseScale
-            val startX = position.x + cos(angle).toFloat() * 15f * pulseScale
-            val startY = position.y + sin(angle).toFloat() * 15f * pulseScale
-            val endX = position.x + cos(angle).toFloat() * (15f + tentacleLength) * pulseScale
-            val endY = position.y + sin(angle).toFloat() * (15f + tentacleLength) * pulseScale
-            
-            paint.strokeWidth = 2f * pulseScale
-            canvas.drawLine(startX, startY, endX, endY, paint)
-        }
-    }
-    
-    override fun getEnemyRadius(): Float = 20f
-}
