@@ -12,8 +12,8 @@ class BasicTower(position: PointF) : Tower(position) {
     override val upgradeCost = 100
     override val maxLevel = 3
 
-    override fun attack(enemy: Enemy) {
-        enemy.position?.let { pos ->
+    override fun attack(target: Enemy) {
+        target.position.let { pos ->
             projectiles.add(Projectile(
                 startPosition = PointF(position.x, position.y),
                 targetPosition = pos,

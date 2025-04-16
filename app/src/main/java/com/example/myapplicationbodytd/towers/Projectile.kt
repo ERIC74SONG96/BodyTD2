@@ -4,16 +4,14 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PointF
-import android.graphics.BlurMaskFilter
 import com.example.myapplicationbodytd.enemies.Enemy
-import kotlin.math.atan2
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
-import kotlin.math.PI
 
 class Projectile(
-    private val startPosition: PointF,
+    startPosition: PointF,
     private val targetPosition: PointF,
     private val speed: Float,
     val damage: Float,
@@ -23,14 +21,7 @@ class Projectile(
     private var _isActive = true
     val isActive: Boolean
         get() = _isActive
-    private var distanceTraveled = 0f
-    private val maxDistance = calculateDistance(startPosition, targetPosition)
     private var animationProgress = 0f
-
-    private val direction = PointF(
-        (targetPosition.x - startPosition.x) / maxDistance,
-        (targetPosition.y - startPosition.y) / maxDistance
-    )
 
     fun update(deltaTime: Float, enemies: List<Enemy>): Enemy? {
         if (!_isActive) return null
@@ -40,12 +31,10 @@ class Projectile(
         var minDistance = Float.MAX_VALUE
 
         for (enemy in enemies) {
-            if (enemy.position != null) {
-                val distance = calculateDistance(targetPosition, enemy.position)
-                if (distance < minDistance) {
-                    minDistance = distance
-                    closestEnemy = enemy
-                }
+            val distance = calculateDistance(targetPosition, enemy.position)
+            if (distance < minDistance) {
+                minDistance = distance
+                closestEnemy = enemy
             }
         }
 
@@ -62,7 +51,6 @@ class Projectile(
 
 
     private fun checkCollision(enemy: Enemy): Boolean {
-        if (enemy.position == null) return false
         val distance = calculateDistance(currentPosition, enemy.position)
         return distance < 20f // Rayon de collision
     }

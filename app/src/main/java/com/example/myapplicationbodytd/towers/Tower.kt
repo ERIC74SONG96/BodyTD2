@@ -9,7 +9,7 @@ import kotlin.math.sqrt
 
 abstract class Tower( //cette classe ne peut pas être instanciée directement
     val position: PointF,
-    protected var level: Int = 1
+    private var level: Int = 1
 ) {
     abstract val type: TowerType
     abstract val range: Float
@@ -18,11 +18,10 @@ abstract class Tower( //cette classe ne peut pas être instanciée directement
     abstract val upgradeCost: Int
     abstract val maxLevel: Int
 
-    protected var lastAttackTime: Long = 0
+    private var lastAttackTime: Long = 0
     private var isSelected = false
     protected val projectiles = mutableListOf<Projectile>()
-    protected var target: Enemy? = null
-    protected var animationProgress = 0f
+    private var animationProgress = 0f
     
     // Callback pour les ennemis touchés
     var onEnemyHitListener: ((Enemy) -> Unit)? = null
@@ -44,7 +43,7 @@ abstract class Tower( //cette classe ne peut pas être instanciée directement
         }
     }
 
-    protected fun updateProjectiles(enemies: List<Enemy>) {
+    private fun updateProjectiles(enemies: List<Enemy>) {
         val iterator = projectiles.iterator()
         while (iterator.hasNext()) {
             val projectile = iterator.next()
@@ -59,14 +58,14 @@ abstract class Tower( //cette classe ne peut pas être instanciée directement
         }
     }
 
-    protected fun findNearestEnemy(enemies: List<Enemy>): Enemy? {
+    private fun findNearestEnemy(enemies: List<Enemy>): Enemy? {
         return enemies
-            .filter { it.position != null }
-            .minByOrNull { calculateDistance(position, it.position!!) }
-            ?.takeIf { calculateDistance(position, it.position!!) <= range }
+            .minByOrNull { calculateDistance(position, it.position) }
+            //Pas besoin de vérifier si la position est null car au début position : pointF
+            ?.takeIf { calculateDistance(position, it.position) <= range }
     }
 
-    protected fun calculateDistance(start: PointF, end: PointF): Float {
+    private fun calculateDistance(start: PointF, end: PointF): Float {
         val dx = end.x - start.x
         val dy = end.y - start.y
         return sqrt(dx * dx + dy * dy)
