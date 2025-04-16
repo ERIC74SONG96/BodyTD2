@@ -12,16 +12,7 @@ import kotlin.math.sin
 import kotlin.math.cos
 import kotlin.math.PI
 
-/**
- * Classe de base pour tous les ennemis du jeu.
- * Définit le comportement et les propriétés communes à tous les ennemis.
- * 
- * Propriétés communes :
- * - Points de vie
- * - Vitesse de déplacement
- * - Dégâts infligés
- * - Récompense en argent
- */
+
 abstract class Enemy(
     var position: PointF,
     var health: Float,
@@ -30,10 +21,6 @@ abstract class Enemy(
     var damage: Float,
     var reward: Int
 ) {
-    /**
-     * Type spécifique de l'ennemi.
-     * Utilisé pour différencier les ennemis et appliquer des comportements spécifiques.
-     */
     abstract val type: EnemyType
     private var currentWaypointIndex = 0
     private var progress = 0f
@@ -45,13 +32,6 @@ abstract class Enemy(
     private var deathAnimationProgress = 0f
     private var isDying = false
 
-    /**
-     * Met à jour la position de l'ennemi en suivant le chemin.
-     * 
-     * @param waypoints Liste des points de passage
-     * @param deltaTime Temps écoulé depuis la dernière mise à jour
-     * @return true si l'ennemi a atteint la fin du chemin
-     */
     fun update(waypoints: List<PointF>, deltaTime: Float): Boolean {
         if (isDead || isReachedEnd) return false
 
@@ -96,12 +76,6 @@ abstract class Enemy(
         return false
     }
 
-    /**
-     * Dessine l'ennemi sur le canvas.
-     * 
-     * @param canvas Canvas sur lequel dessiner
-     * @param paint Paint à utiliser pour le dessin
-     */
     fun draw(canvas: Canvas, paint: Paint) {
         if (isDead) return
         
@@ -194,28 +168,10 @@ abstract class Enemy(
         canvas.restore()
     }
 
-    /**
-     * Dessine l'ennemi sur le canvas.
-     * 
-     * @param canvas Canvas sur lequel dessiner
-     * @param paint Paint à utiliser pour le dessin
-     */
     abstract fun drawEnemy(canvas: Canvas, paint: Paint)
     
-    /**
-     * Retourne le rayon de collision de l'ennemi.
-     * Utilisé pour la détection des collisions avec les projectiles.
-     * 
-     * @return Le rayon de collision en pixels
-     */
     protected abstract fun getEnemyRadius(): Float
 
-    /**
-     * Inflige des dégâts à l'ennemi.
-     * 
-     * @param amount Montant des dégâts à infliger
-     * @return true si l'ennemi est mort après avoir pris des dégâts
-     */
     fun takeDamage(amount: Float): Boolean {
         health -= amount
         damageAnimationProgress = 1f
@@ -228,18 +184,7 @@ abstract class Enemy(
         return false
     }
 
-    /**
-     * Vérifie si l'ennemi est mort.
-     * 
-     * @return true si l'ennemi n'a plus de points de vie
-     */
     fun isDead(): Boolean = isDead
-
-    /**
-     * Vérifie si l'ennemi a atteint la fin du chemin.
-     * 
-     * @return true si l'ennemi a atteint la fin du chemin
-     */
     fun hasReachedEnd(): Boolean = isReachedEnd
 
     private fun calculateDistance(p1: PointF, p2: PointF): Float {
