@@ -1,0 +1,880 @@
+ANALYSE DES CONCEPTS OO ET PATTERNS DU PROJET BODY TD
+===================================================
+
+1. CONCEPTS OO DE BASE (4 points)
+--------------------------------
+
+1.1 Héritage
+------------
+- Utilisation : Création d'une hiérarchie de classes pour les ennemis
+- Exemple : 
+  * Classe abstraite Enemy définissant le comportement commun
+  * Classes concrètes (Virus, Bacteria, Parasite) héritant de Enemy
+- Avantages :
+  * Réutilisation du code
+  * Structure hiérarchique claire
+  * Facilité d'ajout de nouveaux types d'ennemis
+
+Code :
+```kotlin
+// Classe abstraite de base
+abstract class Enemy(
+    var position: PointF,
+    var health: Float,
+    var maxHealth: Float,
+    var speed: Float,
+    var damage: Float,
+    var reward: Int
+) {
+    abstract val type: EnemyType
+    abstract fun drawEnemy(canvas: Canvas, paint: Paint)
+    abstract fun getEnemyRadius(): Float
+}
+
+// Classe concrète héritant de Enemy
+class Virus(position: PointF) : Enemy(
+    position = position,
+    health = 50f,
+    maxHealth = 50f,
+    speed = 150f,
+    damage = 1f,
+    reward = 10
+) {
+    override val type: EnemyType = EnemyType.VIRUS
+    override fun drawEnemy(canvas: Canvas, paint: Paint) {
+        // Implémentation spécifique du dessin du virus
+    }
+    override fun getEnemyRadius(): Float = 15f
+}
+```
+
+Explication :
+- La classe abstraite `Enemy` définit les propriétés et comportements communs à tous les ennemis
+- Les classes concrètes comme `Virus` héritent de `Enemy` et implémentent les méthodes abstraites
+- Cela permet d'avoir un code commun dans `Enemy` tout en permettant des implémentations spécifiques
+
+1.2 Interface
+------------
+- Utilisation : Définition de contrats pour les stratégies d'attaque
+- Exemple : Interface AttackStrategy
+- Avantages :
+  * Découplage des implémentations
+  * Flexibilité dans le choix des stratégies
+  * Facilité de test
+
+Code :
+```kotlin
+// Interface définissant le contrat
+interface AttackStrategy {
+    fun selectTargets(towerPosition: PointF, range: Float, enemies: List<Enemy>): List<Enemy>
+    fun calculateDamageMultiplier(enemy: Enemy): Float
+    fun getProjectileColor(): Int
+    fun getProjectileSpeed(): Float
+}
+
+// Implémentation concrète
+class SingleTargetStrategy : AttackStrategy {
+    override fun selectTargets(towerPosition: PointF, range: Float, enemies: List<Enemy>): List<Enemy> {
+        var closestEnemy: Enemy? = null
+        var minDistance = Float.MAX_VALUE
+        for (enemy in enemies) {
+            val distance = calculateDistance(towerPosition, enemy.position)
+            if (distance <= range && distance < minDistance) {
+                minDistance = distance
+                closestEnemy = enemy
+            }
+        }
+        return if (closestEnemy != null) listOf(closestEnemy) else emptyList()
+    }
+    // ... autres implémentations
+}
+```
+
+Explication :
+- L'interface `AttackStrategy` définit les méthodes que toute stratégie d'attaque doit implémenter
+- Les classes concrètes comme `SingleTargetStrategy` implémentent ces méthodes selon leur logique propre
+- Cela permet de changer facilement de stratégie sans modifier le reste du code
+
+1.3 Polymorphisme
+----------------
+- Utilisation : Traitement uniforme des différents types d'ennemis
+- Exemple : List<Enemy> pouvant contenir Virus, Bacteria, etc.
+- Avantages :
+  * Code plus générique
+  * Extensibilité facilitée
+  * Réduction de la complexité
+
+Code :
+```kotlin
+// Utilisation du polymorphisme
+class GameManager {
+    private val enemies = mutableListOf<Enemy>()
+
+    fun addEnemy(enemy: Enemy) {
+        enemies.add(enemy)
+    }
+
+    fun updateEnemies(deltaTime: Float) {
+        enemies.forEach { enemy ->
+            // Peut être n'importe quel type d'ennemi
+            enemy.update(waypoints, deltaTime)
+            enemy.drawEnemy(canvas, paint)
+        }
+    }
+}
+
+// Utilisation
+val gameManager = GameManager()
+gameManager.addEnemy(Virus(position))
+gameManager.addEnemy(Bacteria(position))
+gameManager.addEnemy(Parasite(position))
+```
+
+Explication :
+- Le polymorphisme permet de traiter tous les ennemis de la même manière
+- On peut appeler les mêmes méthodes sur différents types d'ennemis
+- Le code est plus générique et plus facile à maintenir
+
+1.4 Association
+--------------
+- Utilisation : Relations entre les différentes classes du jeu
+- Exemple : GameManager associé à Map et WaveManager
+- Avantages :
+  * Structure modulaire
+  * Responsabilités bien définies
+  * Couplage faible
+
+Code :
+```kotlin
+class GameManager {
+    private val map: Map
+    private val waveManager: WaveManager
+    private val soundManager: SoundManager
+
+    constructor() {
+        map = Map(this)
+        waveManager = WaveManager()
+        soundManager = SoundManager()
+    }
+
+    fun update() {
+        map.update()
+        waveManager.update()
+    }
+}
+```
+
+Explication :
+- Les classes sont associées mais restent indépendantes
+- Chaque classe a sa propre responsabilité
+- Les modifications dans une classe n'affectent pas les autres
+
+1.5 Composition
+--------------
+- Utilisation : Relations "partie-tout" entre les objets
+- Exemple : Tower contenant des Projectile
+- Avantages :
+  * Cycle de vie lié
+  * Encapsulation forte
+  * Cohérence des données
+
+Code :
+```kotlin
+class Tower {
+    private val projectiles = mutableListOf<Projectile>()
+    
+    fun attack(enemy: Enemy) {
+        val projectile = Projectile(
+            startPosition = position,
+            targetPosition = enemy.position,
+            speed = 1200f,
+            damage = damage
+        )
+        projectiles.add(projectile)
+    }
+
+    fun update() {
+        val iterator = projectiles.iterator()
+        while (iterator.hasNext()) {
+            val projectile = iterator.next()
+            if (!projectile.isActive) {
+                iterator.remove()
+            }
+        }
+    }
+}
+```
+
+Explication :
+- Les projectiles font partie intégrante de la tour
+- Ils sont créés et détruits avec la tour
+- La tour contrôle complètement le cycle de vie des projectiles
+
+1.6 Agrégation
+--------------
+- Utilisation : Collections d'objets indépendants
+- Exemple : GameManager gérant une liste de Tower
+- Avantages :
+  * Flexibilité dans la gestion
+  * Indépendance des objets
+  * Facilité de modification
+
+Code :
+```kotlin
+class GameManager {
+    private val towers = mutableListOf<Tower>()
+    
+    fun addTower(tower: Tower) {
+        towers.add(tower)
+    }
+    
+    fun removeTower(tower: Tower) {
+        towers.remove(tower)
+    }
+    
+    fun updateTowers() {
+        towers.forEach { it.update() }
+    }
+}
+```
+
+Explication :
+- Les tours existent indépendamment du GameManager
+- Elles peuvent être ajoutées ou supprimées sans affecter le GameManager
+- Le GameManager ne contrôle pas le cycle de vie des tours
+
+1.7 Encapsulation
+----------------
+- Utilisation : Protection des données et comportements
+- Exemple : Variables privées dans GameManager
+- Avantages :
+  * Sécurité des données
+  * Contrôle d'accès
+  * Maintenance facilitée
+
+Code :
+```kotlin
+class GameManager {
+    private var money = 100
+    private var health = 100
+    private var score = 0
+    
+    fun getMoney(): Int = money
+    fun getHealth(): Int = health
+    fun getScore(): Int = score
+    
+    fun addMoney(amount: Int) {
+        money += amount
+        onMoneyChangedListener?.invoke(money)
+    }
+    
+    fun takeDamage(amount: Int) {
+        health = (health - amount).coerceAtLeast(0)
+        onHealthChangedListener?.invoke(health)
+    }
+}
+```
+
+Explication :
+- Les variables sont privées et accessibles uniquement via des méthodes
+- Les méthodes contrôlent comment les données sont modifiées
+- Les listeners sont notifiés des changements
+
+1.8 Observer
+------------
+- Utilisation : Notification des changements d'état
+- Exemple : Listeners dans GameManager
+- Avantages :
+  * Découplage des composants
+  * Réactivité aux événements
+  * Communication asynchrone
+
+Code :
+```kotlin
+class GameManager {
+    private var onGameOverListener: (() -> Unit)? = null
+    private var onMoneyChangedListener: ((Int) -> Unit)? = null
+    private var onHealthChangedListener: ((Int) -> Unit)? = null
+    
+    fun setOnGameOverListener(listener: () -> Unit) {
+        onGameOverListener = listener
+    }
+    
+    fun setOnMoneyChangedListener(listener: (Int) -> Unit) {
+        onMoneyChangedListener = listener
+    }
+    
+    fun setOnHealthChangedListener(listener: (Int) -> Unit) {
+        onHealthChangedListener = listener
+    }
+    
+    private fun gameOver() {
+        isGameOver = true
+        onGameOverListener?.invoke()
+    }
+}
+```
+
+Explication :
+- Les listeners permettent de notifier les composants des changements
+- Le GameManager ne connaît pas les détails des composants qui l'écoutent
+- La communication est asynchrone et découplée
+
+1.9 Statique
+------------
+- Utilisation : Éléments partagés entre instances
+- Exemple : Singleton dans GameManager
+- Avantages :
+  * Accès global contrôlé
+  * Économie de ressources
+  * Cohérence des données
+
+Code :
+```kotlin
+class GameManager private constructor() {
+    companion object {
+        @Volatile
+        private var instance: GameManager? = null
+        
+        fun getInstance(): GameManager {
+            return instance ?: synchronized(this) {
+                instance ?: GameManager().also { instance = it }
+            }
+        }
+    }
+    
+    // ... reste de la classe
+}
+```
+
+Explication :
+- Le singleton assure qu'il n'y a qu'une seule instance de GameManager
+- L'accès est contrôlé via la méthode getInstance()
+- Les données sont partagées de manière sûre
+
+1.10 Visibilité
+--------------
+- Utilisation : Contrôle d'accès aux membres
+- Exemple : private, protected, public
+- Avantages :
+  * Sécurité du code
+  * Interface claire
+  * Maintenance simplifiée
+
+Code :
+```kotlin
+class Tower {
+    // Private - accessible uniquement dans la classe
+    private var lastAttackTime: Long = 0
+    private val projectiles = mutableListOf<Projectile>()
+    
+    // Protected - accessible dans la classe et ses sous-classes
+    protected var target: Enemy? = null
+    
+    // Public - accessible partout
+    val position: PointF
+    val type: TowerType
+    
+    // Méthodes publiques pour l'interface
+    fun update() { ... }
+    fun draw(canvas: Canvas) { ... }
+}
+```
+
+Explication :
+- Les membres privés sont cachés et protégés
+- Les membres protégés sont accessibles aux sous-classes
+- L'interface publique est claire et minimaliste
+
+2. PATTERNS DE CONCEPTION (4 points)
+-----------------------------------
+
+2.1 Strategy Pattern
+-------------------
+- Utilisation : Différentes stratégies d'attaque pour les tours
+- Implémentation :
+  * Interface AttackStrategy
+  * Classes SingleTargetStrategy et MultiTargetStrategy
+- Avantages :
+  * Flexibilité des comportements
+  * Extensibilité facile
+  * Testabilité améliorée
+
+Code :
+```kotlin
+// Interface définissant la stratégie
+interface AttackStrategy {
+    fun selectTargets(towerPosition: PointF, range: Float, enemies: List<Enemy>): List<Enemy>
+    fun calculateDamageMultiplier(enemy: Enemy): Float
+    fun getProjectileColor(): Int
+    fun getProjectileSpeed(): Float
+}
+
+// Implémentation pour une cible unique
+class SingleTargetStrategy : AttackStrategy {
+    override fun selectTargets(towerPosition: PointF, range: Float, enemies: List<Enemy>): List<Enemy> {
+        var closestEnemy: Enemy? = null
+        var minDistance = Float.MAX_VALUE
+        for (enemy in enemies) {
+            val distance = calculateDistance(towerPosition, enemy.position)
+            if (distance <= range && distance < minDistance) {
+                minDistance = distance
+                closestEnemy = enemy
+            }
+        }
+        return if (closestEnemy != null) listOf(closestEnemy) else emptyList()
+    }
+    // ... autres implémentations
+}
+
+// Implémentation pour plusieurs cibles
+class MultiTargetStrategy : AttackStrategy {
+    override fun selectTargets(towerPosition: PointF, range: Float, enemies: List<Enemy>): List<Enemy> {
+        return enemies.filter { enemy ->
+            calculateDistance(towerPosition, enemy.position) <= range
+        }
+    }
+    // ... autres implémentations
+}
+```
+
+Explication :
+- Le pattern Strategy permet de définir une famille d'algorithmes
+- Chaque stratégie implémente l'interface AttackStrategy
+- Les tours peuvent changer de stratégie à l'exécution
+- Facilite l'ajout de nouvelles stratégies sans modifier le code existant
+
+2.2 Factory Pattern
+------------------
+- Utilisation : Création d'ennemis
+- Implémentation : EnemyFactory
+- Avantages :
+  * Encapsulation de la création
+  * Centralisation de la logique
+  * Extensibilité simplifiée
+
+Code :
+```kotlin
+class EnemyFactory {
+    fun createEnemy(type: EnemyType, position: PointF): Enemy {
+        return when (type) {
+            EnemyType.VIRUS -> Virus(position)
+            EnemyType.BACTERIA -> Bacteria(position)
+            EnemyType.PARASITE -> Parasite(position)
+            else -> throw IllegalArgumentException("Type d'ennemi inconnu: $type")
+        }
+    }
+}
+
+// Utilisation
+val factory = EnemyFactory()
+val virus = factory.createEnemy(EnemyType.VIRUS, position)
+val bacteria = factory.createEnemy(EnemyType.BACTERIA, position)
+```
+
+Explication :
+- Le pattern Factory encapsule la logique de création d'objets
+- Centralise la création des ennemis dans une seule classe
+- Facilite l'ajout de nouveaux types d'ennemis
+- Permet de modifier la logique de création sans affecter le reste du code
+
+2.3 Singleton Pattern
+--------------------
+- Utilisation : Gestion unique du jeu
+- Implémentation : GameManager.getInstance()
+- Avantages :
+  * Accès global contrôlé
+  * Économie de ressources
+  * Cohérence des données
+
+Code :
+```kotlin
+class GameManager private constructor() {
+    companion object {
+        @Volatile
+        private var instance: GameManager? = null
+        
+        fun getInstance(): GameManager {
+            return instance ?: synchronized(this) {
+                instance ?: GameManager().also { instance = it }
+            }
+        }
+    }
+    
+    private var money = 100
+    private var health = 100
+    private var score = 0
+    
+    // ... reste de la classe
+}
+
+// Utilisation
+val gameManager = GameManager.getInstance()
+```
+
+Explication :
+- Le pattern Singleton assure qu'il n'y a qu'une seule instance de GameManager
+- L'accès est contrôlé via la méthode getInstance()
+- Les données sont partagées de manière sûre entre tous les composants
+- Évite les problèmes de synchronisation
+
+2.4 Observer Pattern
+-------------------
+- Utilisation : Notification des changements
+- Implémentation : Listeners dans GameManager
+- Avantages :
+  * Découplage des composants
+  * Réactivité aux événements
+  * Communication asynchrone
+
+Code :
+```kotlin
+class GameManager {
+    private var onGameOverListener: (() -> Unit)? = null
+    private var onMoneyChangedListener: ((Int) -> Unit)? = null
+    private var onHealthChangedListener: ((Int) -> Unit)? = null
+    
+    fun setOnGameOverListener(listener: () -> Unit) {
+        onGameOverListener = listener
+    }
+    
+    fun setOnMoneyChangedListener(listener: (Int) -> Unit) {
+        onMoneyChangedListener = listener
+    }
+    
+    fun setOnHealthChangedListener(listener: (Int) -> Unit) {
+        onHealthChangedListener = listener
+    }
+    
+    private fun gameOver() {
+        isGameOver = true
+        onGameOverListener?.invoke()
+    }
+    
+    fun addMoney(amount: Int) {
+        money += amount
+        onMoneyChangedListener?.invoke(money)
+    }
+}
+```
+
+Explication :
+- Le pattern Observer permet une communication découplée entre objets
+- Les composants s'inscrivent pour être notifiés des changements
+- Le GameManager ne connaît pas les détails des composants qui l'écoutent
+- Facilite l'ajout de nouveaux observateurs
+
+2.5 State Pattern
+----------------
+- Utilisation : Gestion des états des ennemis
+- Implémentation : États dans Enemy
+- Avantages :
+  * Gestion claire des états
+  * Comportement dynamique
+  * Extensibilité facilitée
+
+Code :
+```kotlin
+interface EnemyState {
+    fun update(enemy: Enemy, deltaTime: Float)
+    fun draw(enemy: Enemy, canvas: Canvas, paint: Paint)
+}
+
+class NormalState : EnemyState {
+    override fun update(enemy: Enemy, deltaTime: Float) {
+        // Comportement normal
+        enemy.move(deltaTime)
+    }
+    
+    override fun draw(enemy: Enemy, canvas: Canvas, paint: Paint) {
+        // Dessin normal
+        enemy.drawEnemy(canvas, paint)
+    }
+}
+
+class SlowedState(private val slowFactor: Float) : EnemyState {
+    override fun update(enemy: Enemy, deltaTime: Float) {
+        // Comportement ralenti
+        enemy.move(deltaTime * slowFactor)
+    }
+    
+    override fun draw(enemy: Enemy, canvas: Canvas, paint: Paint) {
+        // Dessin avec effet de ralentissement
+        paint.color = Color.BLUE
+        enemy.drawEnemy(canvas, paint)
+    }
+}
+
+class Enemy {
+    private var currentState: EnemyState = NormalState()
+    
+    fun setState(state: EnemyState) {
+        currentState = state
+    }
+    
+    fun update(deltaTime: Float) {
+        currentState.update(this, deltaTime)
+    }
+    
+    fun draw(canvas: Canvas, paint: Paint) {
+        currentState.draw(this, canvas, paint)
+    }
+}
+```
+
+Explication :
+- Le pattern State permet de gérer différents états d'un objet
+- Chaque état implémente l'interface EnemyState
+- L'ennemi peut changer d'état à l'exécution
+- Facilite l'ajout de nouveaux états sans modifier le code existant
+
+2.6 Decorator Pattern
+--------------------
+- Utilisation : Ajout dynamique de comportements aux tours
+- Implémentation : Décorateurs pour les effets des tours
+- Avantages :
+  * Flexibilité dans l'ajout de fonctionnalités
+  * Composition dynamique
+  * Respect du principe Open/Closed
+
+Code :
+```kotlin
+// Interface de base pour les tours
+interface Tower {
+    fun getDamage(): Float
+    fun getRange(): Float
+    fun getAttackSpeed(): Float
+    fun draw(canvas: Canvas)
+}
+
+// Implémentation de base
+class BasicTower : Tower {
+    override fun getDamage(): Float = 10f
+    override fun getRange(): Float = 200f
+    override fun getAttackSpeed(): Float = 1f
+    override fun draw(canvas: Canvas) {
+        // Dessin de base
+    }
+}
+
+// Décorateur abstrait
+abstract class TowerDecorator(private val decoratedTower: Tower) : Tower {
+    override fun getDamage(): Float = decoratedTower.getDamage()
+    override fun getRange(): Float = decoratedTower.getRange()
+    override fun getAttackSpeed(): Float = decoratedTower.getAttackSpeed()
+    override fun draw(canvas: Canvas) = decoratedTower.draw(canvas)
+}
+
+// Décorateur pour le ralentissement
+class SlowEffectDecorator(decoratedTower: Tower) : TowerDecorator(decoratedTower) {
+    override fun getDamage(): Float = super.getDamage() * 0.8f
+    override fun draw(canvas: Canvas) {
+        super.draw(canvas)
+        // Ajout de l'effet visuel de ralentissement
+    }
+}
+
+// Décorateur pour les dégâts augmentés
+class DamageBoostDecorator(decoratedTower: Tower) : TowerDecorator(decoratedTower) {
+    override fun getDamage(): Float = super.getDamage() * 1.5f
+    override fun draw(canvas: Canvas) {
+        super.draw(canvas)
+        // Ajout de l'effet visuel de boost
+    }
+}
+
+// Utilisation
+val basicTower = BasicTower()
+val slowTower = SlowEffectDecorator(basicTower)
+val boostedTower = DamageBoostDecorator(basicTower)
+val slowAndBoostedTower = DamageBoostDecorator(SlowEffectDecorator(basicTower))
+```
+
+Explication :
+- Le pattern Decorator permet d'ajouter dynamiquement des fonctionnalités aux objets
+- Chaque décorateur enveloppe un objet et ajoute son propre comportement
+- Les décorateurs peuvent être combinés pour créer des effets complexes
+- Respecte le principe Open/Closed en permettant d'ajouter de nouvelles fonctionnalités sans modifier le code existant
+
+2.7 Template Method Pattern
+--------------------------
+- Utilisation : Définition du squelette d'un algorithme
+- Implémentation : Méthode template dans la classe Enemy
+- Avantages :
+  * Réutilisation du code
+  * Structure commune
+  * Flexibilité dans les implémentations
+
+Code :
+```kotlin
+abstract class Enemy {
+    // Méthode template définissant le squelette de l'algorithme
+    fun update(deltaTime: Float) {
+        // Étape 1: Vérification de l'état
+        if (!isAlive()) {
+            handleDeath()
+            return
+        }
+        
+        // Étape 2: Mise à jour de la position
+        updatePosition(deltaTime)
+        
+        // Étape 3: Application des effets
+        applyEffects(deltaTime)
+        
+        // Étape 4: Vérification des collisions
+        checkCollisions()
+        
+        // Étape 5: Mise à jour spécifique
+        doSpecificUpdate(deltaTime)
+    }
+    
+    // Méthodes concrètes communes à tous les ennemis
+    private fun isAlive(): Boolean = health > 0
+    private fun handleDeath() {
+        // Logique commune de mort
+        GameManager.getInstance().handleEnemyDeath(this)
+    }
+    
+    // Méthodes abstraites à implémenter par les sous-classes
+    protected abstract fun updatePosition(deltaTime: Float)
+    protected abstract fun applyEffects(deltaTime: Float)
+    protected abstract fun checkCollisions()
+    protected abstract fun doSpecificUpdate(deltaTime: Float)
+}
+
+// Implémentation concrète
+class Virus : Enemy() {
+    override fun updatePosition(deltaTime: Float) {
+        // Logique spécifique de déplacement du virus
+    }
+    
+    override fun applyEffects(deltaTime: Float) {
+        // Application des effets spécifiques au virus
+    }
+    
+    override fun checkCollisions() {
+        // Vérification des collisions spécifiques au virus
+    }
+    
+    override fun doSpecificUpdate(deltaTime: Float) {
+        // Mise à jour spécifique au virus
+    }
+}
+```
+
+Explication :
+- Le pattern Template Method définit le squelette d'un algorithme
+- Les étapes communes sont implémentées dans la classe de base
+- Les sous-classes implémentent les étapes spécifiques
+- Permet de réutiliser le code commun tout en permettant des variations
+- Facilite la maintenance en centralisant la logique commune
+
+3. PRINCIPES SOLID
+-----------------
+
+3.1 Single Responsibility
+------------------------
+- Chaque classe a une responsabilité unique
+- Exemple : Enemy gère uniquement le comportement des ennemis
+
+3.2 Open/Closed
+--------------
+- Extension sans modification
+- Exemple : Ajout de nouveaux types d'ennemis
+
+3.3 Liskov Substitution
+-----------------------
+- Substitution des sous-classes
+- Exemple : Tous les ennemis peuvent être traités comme Enemy
+
+3.4 Interface Segregation
+------------------------
+- Interfaces spécifiques
+- Exemple : AttackStrategy définit uniquement les méthodes nécessaires
+
+3.5 Dependency Inversion
+-----------------------
+- Dépendances sur les abstractions
+- Exemple : Utilisation d'interfaces pour les stratégies
+
+4. AVANTAGES DE L'ARCHITECTURE
+-----------------------------
+
+4.1 Modularité
+--------------
+- Composants indépendants
+- Facilite la maintenance
+- Permet l'évolution
+
+4.2 Extensibilité
+----------------
+- Ajout facile de nouvelles fonctionnalités
+- Support des nouveaux types d'ennemis
+- Ajout de nouvelles stratégies
+
+4.3 Testabilité
+--------------
+- Composants isolés
+- Interfaces claires
+- Facilité de mock
+
+4.4 Maintenabilité
+-----------------
+- Code organisé
+- Responsabilités claires
+- Documentation implicite
+
+5. EXEMPLES DE CODE
+------------------
+
+5.1 Héritage et Polymorphisme
+----------------------------
+```kotlin
+abstract class Enemy {
+    abstract fun drawEnemy(canvas: Canvas, paint: Paint)
+}
+
+class Virus : Enemy() {
+    override fun drawEnemy(canvas: Canvas, paint: Paint) {
+        // Implémentation spécifique
+    }
+}
+```
+
+5.2 Strategy Pattern
+-------------------
+```kotlin
+interface AttackStrategy {
+    fun selectTargets(towerPosition: PointF, range: Float, enemies: List<Enemy>): List<Enemy>
+}
+
+class SingleTargetStrategy : AttackStrategy {
+    override fun selectTargets(...) {
+        // Implémentation
+    }
+}
+```
+
+5.3 Observer Pattern
+-------------------
+```kotlin
+class GameManager {
+    private var onGameOverListener: (() -> Unit)? = null
+    
+    fun setOnGameOverListener(listener: () -> Unit) {
+        onGameOverListener = listener
+    }
+}
+```
+
+6. CONCLUSION
+------------
+
+Le projet Body TD démontre une excellente maîtrise des concepts OO et des patterns de conception. L'architecture choisie permet :
+- Une maintenance aisée
+- Une extensibilité naturelle
+- Une testabilité efficace
+- Une compréhension claire du code
+
+Les patterns utilisés répondent parfaitement aux besoins du jeu tout en respectant les principes SOLID, ce qui en fait un excellent exemple de conception orientée objet. 
