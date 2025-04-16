@@ -1,6 +1,7 @@
 package com.example.myapplicationbodytd
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplicationbodytd.managers.GameManager
 
@@ -10,10 +11,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        // Initialisation des vues
-        gameView = findViewById(R.id.gameView)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        gameView = GameView(this)
+        setContentView(gameView)
 
         // Initialisation du gestionnaire de jeu
         gameManager = GameManager.getInstance(this)
@@ -24,12 +24,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        gameView.resume()
+        gameView.resumeGame()
     }
 
     override fun onPause() {
         super.onPause()
-        gameView.pause()
+        gameView.pauseGame()
     }
 
     override fun onDestroy() {

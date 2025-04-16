@@ -16,14 +16,26 @@ import com.example.myapplicationbodytd.towers.TowerType
 import com.example.myapplicationbodytd.towers.BasicTower
 import com.example.myapplicationbodytd.towers.SniperTower
 import com.example.myapplicationbodytd.towers.RapidTower
+import com.example.myapplicationbodytd.towers.Projectile
 import com.example.myapplicationbodytd.ui.Map
 import com.example.myapplicationbodytd.player.Player
 import kotlin.math.sqrt
 import kotlin.math.sin
 import kotlin.math.cos
 
+/**
+ * GameManager est la classe principale qui gère toute la logique du jeu.
+ * Elle implémente le pattern Singleton pour garantir une seule instance.
+ * 
+ * Responsabilités :
+ * - Gestion de l'état du jeu (démarrage, pause, fin)
+ * - Gestion des ressources (argent, santé, score)
+ * - Gestion des tours et des ennemis
+ * - Gestion des vagues
+ * - Gestion des interactions utilisateur
+ */
 class GameManager private constructor(private val context: Context) {
-    private var money = 100
+    private var money = 350
     private var health = 100
     private var score = 0
     private var currentWave = 0
@@ -60,6 +72,7 @@ class GameManager private constructor(private val context: Context) {
     
     private val towers = mutableListOf<Tower>()
     private val enemies = mutableListOf<Enemy>()
+    private val projectiles = mutableListOf<Projectile>()
     private val map = Map(this)
     private val waveManager = WaveManager()
     
@@ -86,57 +99,48 @@ class GameManager private constructor(private val context: Context) {
     fun getWaveManager(): WaveManager = waveManager
     fun getSelectedTowerType(): TowerType? = selectedTowerType
 
-    @Synchronized
+    /**
+     * Démarre une nouvelle partie.
+     * Réinitialise complètement l'état du jeu.
+     */
     fun startGame() {
-        try {
-            // Réinitialisation complète du jeu
-            isGameStarted = true
-            money = 100
-            health = 100
-            score = 0
-            currentWave = 0
-            isGameOver = false
-            isWaveBreak = false
-            currentWaveBreakTime = 0f
-            bonusMoneyMultiplier = 1.0f
-            bonusHealthReward = 10
-            selectedTowerType = null
-            selectedTower = null
-            lastTappedPosition = null
-            
-            // Nettoyage des listes
-            towers.clear()
-            enemies.clear()
-            
-            // Réinitialisation du WaveManager
-            waveManager.reset()
-            
-            // Notifier les listeners des changements
-            onMoneyChangedListener?.invoke(money)
-            onHealthChangedListener?.invoke(health)
-            onScoreChangedListener?.invoke(score)
-            onWaveCompleteListener?.invoke(currentWave)
-            
-            // Démarrer la musique
-            soundManager.startBackgroundMusic()
-            
-            // Démarrer la première vague
-            val waypoints = map.getWayPoints()
-            if (waypoints.isNotEmpty()) {
-                waveManager.startNextWave(waypoints.first())
-                soundManager.playSound(SoundType.WAVE_START)
-            }
-            
-            Log.d("GameManager", "Jeu réinitialisé - Argent: $money, Vie: $health, Score: $score, Vague: $currentWave")
-        } catch (e: Exception) {
-            e.printStackTrace()
-            resetGameState()
-        }
+        // Réinitialiser les tours
+        towers.clear()
+        
+        // Réinitialiser les ennemis
+        enemies.clear()
+        
+        // Réinitialiser les projectiles
+        projectiles.clear()
+        
+        // Réinitialiser les ressources
+        money = 350
+        health = 100
+        score = 0
+        currentWave = 0
+        
+        // Réinitialiser le sélecteur de tour
+        selectedTowerType = null
+        
+        // Réinitialiser le WaveManager
+        waveManager.reset()
+        
+        // Réinitialiser l'état du jeu
+        isGameOver = false
+        isGameStarted = true
+        
+        // Notifier les listeners
+        notifyMoneyChanged()
+        notifyHealthChanged()
+        notifyScoreChanged()
+        notifyWaveChanged()
+        
+        Log.d("GameManager", "Nouvelle partie démarrée - État réinitialisé")
     }
 
     private fun resetGameState() {
         isGameStarted = false
-        money = 100
+        money = 350
         health = 100
         score = 0
         currentWave = 0
@@ -148,6 +152,12 @@ class GameManager private constructor(private val context: Context) {
         enemies.clear()
     }
 
+    /**
+     * Met à jour l'état du jeu.
+     * Gère la logique de jeu à chaque frame.
+     * 
+     * @param deltaTime Temps écoulé depuis la dernière frame en secondes
+     */
     @Synchronized
     fun update(deltaTime: Float) {
         if (!isGameStarted || isGameOver || deltaTime <= 0 || deltaTime > 1.0f) return
@@ -379,6 +389,12 @@ class GameManager private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * Dessine l'état actuel du jeu sur le canvas.
+     * 
+     * @param canvas Canvas sur lequel dessiner
+     * @param paint Paint à utiliser pour le dessin
+     */
     fun draw(canvas: Canvas, paint: Paint) {
         // Dessiner la zone de jeu
         canvas.save()
@@ -416,6 +432,13 @@ class GameManager private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * Gère les interactions tactiles de l'utilisateur.
+     * 
+     * @param x Coordonnée X du point de contact
+     * @param y Coordonnée Y du point de contact
+     * @return true si l'événement a été traité, false sinon
+     */
     @Synchronized
     fun handleTap(x: Float, y: Float): Boolean {
         if (isGameOver) return false
@@ -746,6 +769,22 @@ class GameManager private constructor(private val context: Context) {
 
     fun getHighScore(): Int {
         return player.getStats().highScore
+    }
+
+    private fun notifyMoneyChanged() {
+        onMoneyChangedListener?.invoke(money)
+    }
+
+    private fun notifyHealthChanged() {
+        onHealthChangedListener?.invoke(health)
+    }
+
+    private fun notifyScoreChanged() {
+        onScoreChangedListener?.invoke(score)
+    }
+
+    private fun notifyWaveChanged() {
+        onWaveCompleteListener?.invoke(currentWave)
     }
 }
 

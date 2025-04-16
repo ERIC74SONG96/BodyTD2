@@ -12,7 +12,8 @@ class SoundManager private constructor(private val context: Context) {
     private val sounds = mutableMapOf<SoundType, Int>()
     private var backgroundMusic: MediaPlayer? = null
     private var isMuted = false
-    private val toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+    private val toneGenerator1 = ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME)
+    private val toneGenerator2 = ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME)
 
     companion object {
         @Volatile
@@ -51,14 +52,18 @@ class SoundManager private constructor(private val context: Context) {
         if (isMuted) return
         try {
             when (soundType) {
-                SoundType.TOWER_PLACED -> toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 200)
-                SoundType.TOWER_UPGRADED -> toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
-                SoundType.ENEMY_HIT -> toneGenerator.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 100)
-                SoundType.ENEMY_DEATH -> toneGenerator.startTone(ToneGenerator.TONE_CDMA_SOFT_ERROR_LITE, 100)
-                SoundType.WAVE_START -> toneGenerator.startTone(ToneGenerator.TONE_CDMA_ALERT_NETWORK_LITE, 300)
-                SoundType.WAVE_COMPLETE -> toneGenerator.startTone(ToneGenerator.TONE_CDMA_ALERT_INCALL_LITE, 300)
-                SoundType.GAME_OVER -> toneGenerator.startTone(ToneGenerator.TONE_CDMA_ABBR_INTERCEPT, 500)
-                SoundType.BUTTON_CLICK -> toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 50)
+                SoundType.TOWER_PLACED -> toneGenerator1.startTone(ToneGenerator.TONE_PROP_BEEP, 200)
+                SoundType.TOWER_UPGRADED -> toneGenerator1.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
+                SoundType.ENEMY_HIT -> {
+                    // Jouer deux sons simultanément pour les tirs
+                    toneGenerator1.startTone(ToneGenerator.TONE_CDMA_ALERT_INCALL_LITE, 500)
+                    toneGenerator2.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500)
+                }
+                SoundType.ENEMY_DEATH -> toneGenerator1.startTone(ToneGenerator.TONE_CDMA_SOFT_ERROR_LITE, 300)
+                SoundType.WAVE_START -> toneGenerator1.startTone(ToneGenerator.TONE_CDMA_ALERT_NETWORK_LITE, 300)
+                SoundType.WAVE_COMPLETE -> toneGenerator1.startTone(ToneGenerator.TONE_CDMA_ALERT_INCALL_LITE, 300)
+                SoundType.GAME_OVER -> toneGenerator1.startTone(ToneGenerator.TONE_CDMA_ABBR_INTERCEPT, 500)
+                SoundType.BUTTON_CLICK -> toneGenerator1.startTone(ToneGenerator.TONE_PROP_BEEP, 50)
             }
         } catch (e: Exception) {
             Log.e("SoundManager", "Erreur lors de la lecture du son", e)
@@ -105,7 +110,8 @@ class SoundManager private constructor(private val context: Context) {
             soundPool.release()
             backgroundMusic?.release()
             backgroundMusic = null
-            toneGenerator.release()
+            toneGenerator1.release()
+            toneGenerator2.release()
         } catch (e: Exception) {
             Log.e("SoundManager", "Erreur lors de la libération des ressources", e)
         }
