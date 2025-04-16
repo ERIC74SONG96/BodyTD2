@@ -2,15 +2,11 @@ package com.example.myapplicationbodytd.enemies
 
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.PointF
-import android.graphics.LinearGradient
 import android.graphics.Shader
-import android.graphics.BlurMaskFilter
 import kotlin.math.sqrt
-import kotlin.math.sin
-import kotlin.math.cos
-import kotlin.math.PI
 
 
 abstract class Enemy(
@@ -18,8 +14,7 @@ abstract class Enemy(
     var health: Float,
     var maxHealth: Float,
     var speed: Float,
-    var damage: Float,
-    var reward: Int
+    var damage: Float
 ) {
     abstract val type: EnemyType
     private var currentWaypointIndex = 0
@@ -99,7 +94,6 @@ abstract class Enemy(
 
     private fun drawHealthBar(canvas: Canvas, paint: Paint) {
         val healthBarWidth = 30f
-        val healthBarHeight = 5f
         val healthPercentage = health / maxHealth
 
         // Fond de la barre de vie
@@ -185,7 +179,6 @@ abstract class Enemy(
     }
 
     fun isDead(): Boolean = isDead
-    fun hasReachedEnd(): Boolean = isReachedEnd
 
     private fun calculateDistance(p1: PointF, p2: PointF): Float {
         val dx = p2.x - p1.x
@@ -194,36 +187,3 @@ abstract class Enemy(
     }
 }
 
-class Bacteria(position: PointF) : Enemy(
-    position = position,
-    health = 100f,
-    maxHealth = 100f,
-    speed = 150f,
-    damage = 3f,
-    reward = 30
-) {
-    override val type: EnemyType = EnemyType.BACTERIA
-
-    override fun drawEnemy(canvas: Canvas, paint: Paint) {
-        // Effet de pulsation plus rapide
-        val pulseScale = 1f + 0.12f * sin(animationProgress * 4 * PI.toFloat())
-        
-        // Effet de brillance plus intense
-        val glowPaint = Paint(paint).apply {
-            color = Color.argb(150, 0, 255, 0)
-            maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.OUTER)
-        }
-        canvas.drawCircle(position.x, position.y, 20f * pulseScale, glowPaint)
-        
-        // Corps principal
-        paint.color = Color.rgb(0, 255, 0)
-        canvas.drawCircle(position.x, position.y, 18f * pulseScale, paint)
-        
-        // Détails plus visibles
-        paint.color = Color.WHITE
-        canvas.drawCircle(position.x - 6f * pulseScale, position.y - 6f * pulseScale, 4f * pulseScale, paint)
-        canvas.drawCircle(position.x + 6f * pulseScale, position.y + 6f * pulseScale, 4f * pulseScale, paint)
-    }
-    
-    override fun getEnemyRadius(): Float = 18f
-}

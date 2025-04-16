@@ -13,11 +13,9 @@ class SniperTower(position: PointF) : Tower(position) {
     override val maxLevel = 3
 
     override fun attack(target: Enemy) {
-        target.position.let { pos ->
+        target.position.let {
             projectiles.add(Projectile(
                 startPosition = PointF(position.x, position.y),
-                targetPosition = pos,
-                speed = 2500f,
                 damage = damage,
                 color = Color.GREEN
             ))
@@ -27,8 +25,6 @@ class SniperTower(position: PointF) : Tower(position) {
     override fun createProjectile(targetPosition: PointF): Projectile {
         return Projectile(
             startPosition = PointF(position.x, position.y),
-            targetPosition = targetPosition,
-            speed = 2500f,
             damage = damage,
             color = Color.GREEN
         )

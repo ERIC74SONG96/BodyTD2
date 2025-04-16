@@ -47,7 +47,7 @@ abstract class Tower( //cette classe ne peut pas être instanciée directement
         val iterator = projectiles.iterator()
         while (iterator.hasNext()) {
             val projectile = iterator.next()
-            val hitEnemy = projectile.update(0.016f, enemies)
+            val hitEnemy = projectile.update(enemies)
             if (hitEnemy != null) {
                 hitEnemy.takeDamage(projectile.damage)
                 onEnemyHitListener?.invoke(hitEnemy)
@@ -98,8 +98,5 @@ abstract class Tower( //cette classe ne peut pas être instanciée directement
 
     fun select() { isSelected = true }
     fun deselect() { isSelected = false }
-    fun canUpgrade(): Boolean = level < maxLevel
-    fun calculateUpgradeCost(): Int = upgradeCost * level
-    fun upgrade() { if (canUpgrade()) level++ }
 }
 

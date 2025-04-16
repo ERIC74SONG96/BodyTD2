@@ -19,18 +19,6 @@ class Player {
         }
     }
 
-    fun incrementGamesPlayed() {
-        totalGamesPlayed++
-    }
-
-    fun incrementEnemiesKilled() {
-        totalEnemiesKilled++
-    }
-
-    fun incrementTowersBuilt() {
-        totalTowersBuilt++
-    }
-
     fun getStats(): PlayerStats {
         return PlayerStats(
             highScore = highScore,

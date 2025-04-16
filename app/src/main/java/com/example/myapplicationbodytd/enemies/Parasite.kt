@@ -14,8 +14,7 @@ class Parasite(position: PointF) : Enemy(
     health = 200f,
     maxHealth = 200f,
     speed = 50f,
-    damage = 3f,
-    reward = 30
+    damage = 3f
 ) {
     override val type: EnemyType = EnemyType.PARASITE
 
@@ -43,10 +42,10 @@ class Parasite(position: PointF) : Enemy(
         for (i in 0 until numTentacles) {
             val angle = i * (2 * PI.toFloat() / numTentacles) + animationProgress * PI.toFloat()
             val tentacleLength = 10f * pulseScale
-            val startX = position.x + cos(angle).toFloat() * 15f * pulseScale
-            val startY = position.y + sin(angle).toFloat() * 15f * pulseScale
-            val endX = position.x + cos(angle).toFloat() * (15f + tentacleLength) * pulseScale
-            val endY = position.y + sin(angle).toFloat() * (15f + tentacleLength) * pulseScale
+            val startX = position.x + cos(angle) * 15f * pulseScale
+            val startY = position.y + sin(angle) * 15f * pulseScale
+            val endX = position.x + cos(angle) * (15f + tentacleLength) * pulseScale
+            val endY = position.y + sin(angle) * (15f + tentacleLength) * pulseScale
 
             paint.strokeWidth = 2f * pulseScale
             canvas.drawLine(startX, startY, endX, endY, paint)

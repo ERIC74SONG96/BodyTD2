@@ -1,20 +1,26 @@
 package com.example.myapplicationbodytd
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.*
+import android.graphics.BlurMaskFilter
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.PixelFormat
+import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.Typeface
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import com.example.myapplicationbodytd.enemies.Enemy
 import com.example.myapplicationbodytd.managers.GameManager
-import com.example.myapplicationbodytd.player.Player
-import com.example.myapplicationbodytd.towers.Tower
 import com.example.myapplicationbodytd.towers.TowerType
-import com.example.myapplicationbodytd.ui.Map
-import kotlin.math.sin
 import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * GameView est la vue principale du jeu qui gère le rendu et les interactions utilisateur.
@@ -34,10 +40,9 @@ class GameView @JvmOverloads constructor(
 
     private var gameThread: Thread? = null
     private var isRunning = false
-    private val gameManager = GameManager.getInstance(context)
+    private val gameManager = GameManager.getInstance()
     private val paint = Paint()
     private var lastFrameTime = System.nanoTime()
-    private val targetFrameTime = 16_666_666L // ~60 FPS
     private val surfaceHolder: SurfaceHolder = holder
     private var isGameStarted = false
     private val startButtonBounds = RectF()
@@ -77,16 +82,16 @@ class GameView @JvmOverloads constructor(
         gameManager.setOnGameOverListener { 
             // Gérer le game over
         }
-        gameManager.setOnWaveCompleteListener { wave ->
+        gameManager.setOnWaveCompleteListener {
             // Gérer la fin de vague
         }
-        gameManager.setOnMoneyChangedListener { money ->
+        gameManager.setOnMoneyChangedListener {
             // Mettre à jour l'interface avec l'argent
         }
-        gameManager.setOnHealthChangedListener { health ->
+        gameManager.setOnHealthChangedListener {
             // Mettre à jour l'interface avec la santé
         }
-        gameManager.setOnScoreChangedListener { score ->
+        gameManager.setOnScoreChangedListener {
             // Mettre à jour l'interface avec le score
         }
     }
@@ -465,6 +470,7 @@ class GameView @JvmOverloads constructor(
      * @param event L'événement tactile
      * @return true si l'événement a été traité, false sinon
      */
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -486,7 +492,7 @@ class GameView @JvmOverloads constructor(
                 }
 
                 if (y >= gameManager.getGameAreaBottom()) {
-                    handleTowerMenuTap(x, y)
+                    handleTowerMenuTap(y)
                     return true
                 }
 
@@ -513,7 +519,7 @@ class GameView @JvmOverloads constructor(
         gameManager.startGame()
     }
 
-    private fun handleTowerMenuTap(x: Float, y: Float) {
+    private fun handleTowerMenuTap(y: Float) {
         val buttonHeight = gameManager.getTowerMenuHeight() / 3
         val buttonY = gameManager.getGameAreaBottom()
 

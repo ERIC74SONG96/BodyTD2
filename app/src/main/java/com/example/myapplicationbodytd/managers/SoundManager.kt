@@ -1,13 +1,12 @@
 package com.example.myapplicationbodytd.managers
 
-import android.content.Context
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.util.Log
 import android.media.ToneGenerator
 import android.media.AudioManager
 
-class SoundManager private constructor(private val context: Context) {
+class SoundManager private constructor() {
     private val soundPool: SoundPool
     private val sounds = mutableMapOf<SoundType, Int>()
     private var backgroundMusic: MediaPlayer? = null
@@ -18,9 +17,9 @@ class SoundManager private constructor(private val context: Context) {
         @Volatile
         private var instance: SoundManager? = null
 
-        fun getInstance(context: Context): SoundManager {
+        fun getInstance(): SoundManager {
             return instance ?: synchronized(this) {
-                instance ?: SoundManager(context).also { instance = it }
+                instance ?: SoundManager().also { instance = it }
             }
         }
     }
@@ -79,24 +78,6 @@ class SoundManager private constructor(private val context: Context) {
             backgroundMusic?.pause()
         } catch (e: Exception) {
             Log.e("SoundManager", "Erreur lors de la pause de la musique", e)
-        }
-    }
-
-    fun stopBackgroundMusic() {
-        try {
-            backgroundMusic?.stop()
-            backgroundMusic?.prepare()
-        } catch (e: Exception) {
-            Log.e("SoundManager", "Erreur lors de l'arrêt de la musique", e)
-        }
-    }
-
-    fun setMuted(muted: Boolean) {
-        isMuted = muted
-        if (muted) {
-            pauseBackgroundMusic()
-        } else {
-            startBackgroundMusic()
         }
     }
 

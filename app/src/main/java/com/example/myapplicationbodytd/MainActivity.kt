@@ -16,7 +16,7 @@ class MainActivity : AppCompatActivity() {
         gameView = findViewById(R.id.gameView)
 
         // Initialisation du gestionnaire de jeu
-        gameManager = GameManager.getInstance(this)
+        gameManager = GameManager.getInstance()
 
         // Démarrer le jeu
         gameManager.startGame()

@@ -1,28 +1,24 @@
 package com.example.myapplicationbodytd.managers
 
+import android.content.res.Resources
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PointF
-import android.content.res.Resources
-import android.content.Context
 import android.util.Log
-import com.example.myapplicationbodytd.enemies.Enemy
-import com.example.myapplicationbodytd.enemies.Virus
 import com.example.myapplicationbodytd.enemies.Bacteria
+import com.example.myapplicationbodytd.enemies.Enemy
 import com.example.myapplicationbodytd.enemies.Parasite
+import com.example.myapplicationbodytd.enemies.Virus
+import com.example.myapplicationbodytd.player.Player
+import com.example.myapplicationbodytd.towers.BasicTower
+import com.example.myapplicationbodytd.towers.RapidTower
+import com.example.myapplicationbodytd.towers.SniperTower
 import com.example.myapplicationbodytd.towers.Tower
 import com.example.myapplicationbodytd.towers.TowerType
-import com.example.myapplicationbodytd.towers.BasicTower
-import com.example.myapplicationbodytd.towers.SniperTower
-import com.example.myapplicationbodytd.towers.RapidTower
 import com.example.myapplicationbodytd.ui.Map
-import com.example.myapplicationbodytd.player.Player
 import kotlin.math.sqrt
-import kotlin.math.sin
-import kotlin.math.cos
 
-class GameManager private constructor(private val context: Context) {
+class GameManager private constructor() {
     private var money = 500
     private var health = 100
     private var score = 0
@@ -37,7 +33,7 @@ class GameManager private constructor(private val context: Context) {
     private var screenWidth: Int = Resources.getSystem().displayMetrics.widthPixels
     private var screenHeight: Int = Resources.getSystem().displayMetrics.heightPixels
     
-    private val soundManager = SoundManager.getInstance(context)
+    private val soundManager = SoundManager.getInstance()
     
     companion object {
         // Constantes pour les zones de l'interface (en pourcentage de l'écran)
@@ -46,9 +42,9 @@ class GameManager private constructor(private val context: Context) {
         @Volatile
         private var instance: GameManager? = null
 
-        fun getInstance(context: Context): GameManager {
+        fun getInstance(): GameManager {
             return instance ?: synchronized(this) {
-                instance ?: GameManager(context).also { instance = it }
+                instance ?: GameManager().also { instance = it }
             }
         }
     }
@@ -77,13 +73,6 @@ class GameManager private constructor(private val context: Context) {
     private var bonusMoneyMultiplier = 1.0f
     private var bonusHealthReward = 10
 
-    // Getters publics
-    fun isGameOverState(): Boolean = isGameOver
-    fun getCurrentMoney(): Int = money
-    fun getCurrentHealth(): Int = health
-    fun getCurrentScore(): Int = score
-    fun getCurrentWaveNumber(): Int = currentWave
-    fun getWaveManager(): WaveManager = waveManager
     fun getSelectedTowerType(): TowerType? = selectedTowerType
 
     @Synchronized
@@ -180,10 +169,6 @@ class GameManager private constructor(private val context: Context) {
             while (iterator.hasNext()) {
                 try {
                     val enemy = iterator.next()
-                    if (enemy.position == null) {
-                        iterator.remove()
-                        continue
-                    }
 
                     if (enemy.isDead()) {
                         handleEnemyDeath(enemy)
@@ -282,7 +267,7 @@ class GameManager private constructor(private val context: Context) {
                 val newEnemies = waveManager.update(deltaTime)
                 if (newEnemies.isNotEmpty()) {
                     synchronized(enemies) {
-                        enemies.addAll(newEnemies.filter { it.position != null })
+                        enemies.addAll(newEnemies.filter { true })
                     }
                 }
 
@@ -416,43 +401,6 @@ class GameManager private constructor(private val context: Context) {
         }
     }
 
-    @Synchronized
-    fun handleTap(x: Float, y: Float): Boolean {
-        if (isGameOver) return false
-
-        try {
-            synchronized(this) {
-                Log.d("GameManager", "handleTap: x=$x, y=$y, selectedTowerType=$selectedTowerType")
-                
-                if (!isValidTapPosition(x, y)) {
-                    Log.d("GameManager", "Position invalide")
-                    return false
-                }
-
-                lastTappedPosition = PointF(x, y)
-
-                if (selectedTowerType != null) {
-                    Log.d("GameManager", "Tentative de placement de tour: type=$selectedTowerType, money=$money")
-                    if (canPlaceTower(x, y)) {
-                        Log.d("GameManager", "Placement de tour possible")
-                        placeTower(x, y)
-                        return true
-                    } else {
-                        Log.d("GameManager", "Placement de tour impossible")
-                        return false
-                    }
-                } else {
-                    Log.d("GameManager", "Aucun type de tour sélectionné")
-                    return trySelectExistingTower(x, y)
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            deselectAll()
-            return false
-        }
-    }
-
     private fun isValidTapPosition(x: Float, y: Float): Boolean {
         val isValid = x in 0f..screenWidth.toFloat() && y in 0f..screenHeight.toFloat()
         Log.d("GameManager", "isValidTapPosition: $isValid (x=$x, y=$y, screenWidth=$screenWidth, screenHeight=$screenHeight)")
@@ -538,23 +486,6 @@ class GameManager private constructor(private val context: Context) {
         selectedTower = null
     }
 
-    @Synchronized
-    fun upgradeSelectedTower() {
-        selectedTower?.let { tower ->
-            try {
-                val upgradeCost = tower.calculateUpgradeCost()
-                if (money >= upgradeCost && tower.canUpgrade()) {
-                    money = (money - upgradeCost).coerceAtLeast(0)
-                    onMoneyChangedListener?.invoke(money)
-                    tower.upgrade()
-                    soundManager.playSound(SoundType.TOWER_UPGRADED)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
     private fun gameOver() {
         isGameOver = true
         // Mettre à jour le meilleur score
@@ -611,28 +542,6 @@ class GameManager private constructor(private val context: Context) {
     fun isGameOver(): Boolean = isGameOver
 
     @Synchronized
-    fun addTower(type: TowerType, x: Float, y: Float): Boolean {
-        if (isGameOver || !map.isValidTowerLocation(x, y) || money < type.cost) {
-            return false
-        }
-
-        val position = PointF(x, y)
-        val newTower = when (type) {
-            TowerType.BASIC -> BasicTower(position)
-            TowerType.SNIPER -> SniperTower(position)
-            TowerType.RAPID -> RapidTower(position)
-        }
-
-        synchronized(towers) {
-            towers.add(newTower)
-        }
-
-        money -= type.cost
-        onMoneyChangedListener?.invoke(money)
-        return true
-    }
-
-    @Synchronized
     fun addMoney(amount: Int) {
         if (amount <= 0 || isGameOver) return
         try {
@@ -648,35 +557,8 @@ class GameManager private constructor(private val context: Context) {
         }
     }
 
-    @Synchronized
-    fun takeDamage(amount: Int) {
-        if (amount <= 0 || isGameOver) return
-        try {
-            health = (health - amount).coerceIn(0, 100)
-            onHealthChangedListener?.invoke(health)
-            if (health <= 0) {
-                gameOver()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun getWaveBreakProgress(): Float {
-        return if (isWaveBreak) currentWaveBreakTime / waveBreakTime else 0f
-    }
-
-    fun isInWaveBreak(): Boolean = isWaveBreak
-
-    fun skipWaveBreak() {
-        if (isWaveBreak) {
-            endWaveBreak()
-        }
-    }
-
     // Getters pour les dimensions
     fun getTowerMenuHeight(): Float = towerMenuHeight
-    fun getGameAreaTop(): Float = gameAreaTop
     fun getGameAreaBottom(): Float = gameAreaBottom
 
     fun handleGameAreaTap(x: Float, y: Float) {
@@ -712,12 +594,6 @@ class GameManager private constructor(private val context: Context) {
         }
     }
 
-    fun isGameStarted(): Boolean = isGameStarted
-
-    fun setMuted(muted: Boolean) {
-        soundManager.setMuted(muted)
-    }
-
     fun release() {
         soundManager.release()
     }
@@ -744,9 +620,6 @@ class GameManager private constructor(private val context: Context) {
         }
     }
 
-    fun getHighScore(): Int {
-        return player.getStats().highScore
-    }
 }
 
 

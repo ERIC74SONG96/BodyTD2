@@ -12,8 +12,6 @@ import kotlin.math.sqrt
 
 class Projectile(
     startPosition: PointF,
-    private val targetPosition: PointF,
-    private val speed: Float,
     val damage: Float,
     private val color: Int
 ) {
@@ -23,38 +21,53 @@ class Projectile(
         get() = _isActive
     private var animationProgress = 0f
 
-    fun update(deltaTime: Float, enemies: List<Enemy>): Enemy? {
+    fun update(enemies: List<Enemy>): Enemy? {
         if (!_isActive) return null
 
-        // Chercher l'ennemi le plus proche de la position cible
+        // Chercher l'ennemi le plus proche
         var closestEnemy: Enemy? = null
         var minDistance = Float.MAX_VALUE
 
         for (enemy in enemies) {
-            val distance = calculateDistance(targetPosition, enemy.position)
+            val distance = calculateDistance(currentPosition, enemy.position) // Calculer la distance vers l'ennemi
             if (distance < minDistance) {
                 minDistance = distance
                 closestEnemy = enemy
             }
         }
 
-        // Si un ennemi est trouvé dans un rayon raisonnable, on le touche directement
-        if (closestEnemy != null && minDistance < 100f) { // 100f = rayon max de détection
-            _isActive = false
-            return closestEnemy
+        // Si un ennemi est trouvé et qu'il est assez proche, déplacer le projectile vers l'ennemi
+        if (closestEnemy != null) {
+            // Vecteur directionnel du projectile vers l'ennemi
+            val direction = PointF(
+                closestEnemy.position.x - currentPosition.x,
+                closestEnemy.position.y - currentPosition.y
+            )
+
+            // Calculer la distance entre le projectile et l'ennemi
+            val distanceToEnemy = calculateDistance(currentPosition, closestEnemy.position)
+
+            // Eviter la division par zéro
+            if (distanceToEnemy > 0) {
+                // Normaliser la direction
+                direction.x /= distanceToEnemy
+                direction.y /= distanceToEnemy
+            }
+
+            // Déplacer le projectile dans la direction de l'ennemi (vitesse ajustée)
+            val speed = 100f // Vous pouvez ajuster la vitesse à 50f ou à une valeur plus raisonnable
+            currentPosition.x += direction.x * speed
+            currentPosition.y += direction.y * speed
+
+            // Vérifier si le projectile touche l'ennemi (si la distance est inférieure à un seuil)
+            if (minDistance < 75f) { // Seuil de collision
+                _isActive = false
+                return closestEnemy // Retourner l'ennemi touché
+            }
         }
 
-        // Si aucun ennemi à portée, désactiver le projectile
-        _isActive = false
         return null
     }
-
-
-    private fun checkCollision(enemy: Enemy): Boolean {
-        val distance = calculateDistance(currentPosition, enemy.position)
-        return distance < 20f // Rayon de collision
-    }
-
     fun draw(canvas: Canvas, paint: Paint) {
         if (!_isActive) return
 

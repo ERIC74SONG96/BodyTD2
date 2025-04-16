@@ -6,8 +6,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PointF
-import com.example.myapplicationbodytd.enemies.Enemy
-import com.example.myapplicationbodytd.enemies.EnemyType
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -16,8 +14,7 @@ class Virus(position: PointF) : Enemy(
     health = 50f,
     maxHealth = 50f,
     speed = 300f,
-    damage = 2f,
-    reward = 20
+    damage = 2f
 ) {
     override val type: EnemyType = EnemyType.VIRUS
 

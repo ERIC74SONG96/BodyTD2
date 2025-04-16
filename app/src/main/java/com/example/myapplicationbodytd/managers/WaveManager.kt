@@ -90,8 +90,6 @@ class WaveManager {
 
     fun isWaveComplete(): Boolean = enemiesToSpawn.isEmpty()
 
-    fun getCurrentWave(): Int = currentWave
-
     private fun calculateEnemiesForWave(): Int {
         return 12 + currentWave * 4
     }

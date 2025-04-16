@@ -2,7 +2,6 @@ package com.example.myapplicationbodytd.towers.strategies
 
 import android.graphics.PointF
 import com.example.myapplicationbodytd.enemies.Enemy
-import kotlin.math.sqrt
 
 interface AttackStrategy {
     fun selectTargets(towerPosition: PointF, range: Float, enemies: List<Enemy>): List<Enemy>
