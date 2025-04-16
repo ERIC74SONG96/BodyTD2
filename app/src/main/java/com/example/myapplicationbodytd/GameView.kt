@@ -16,20 +16,29 @@ import com.example.myapplicationbodytd.ui.Map
 import kotlin.math.sin
 import kotlin.math.cos
 
+/**
+ * GameView est la vue principale du jeu qui gère le rendu et les interactions utilisateur.
+ * Elle hérite de SurfaceView pour permettre le rendu personnalisé.
+ * 
+ * Responsabilités :
+ * - Gestion du cycle de vie de la surface de rendu
+ * - Boucle de jeu principale
+ * - Rendu des différents états du jeu (menu, jeu, game over)
+ * - Gestion des événements tactiles
+ */
 class GameView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : SurfaceView(context, attrs, defStyleAttr), SurfaceHolder.Callback, Runnable {
 
-    private var thread: Thread? = null
-    private var running = false
-    private val surfaceHolder: SurfaceHolder = holder
-    private var lastUpdateTime: Long = System.nanoTime()
-    private val targetFrameTime = 16_666_666L // ~60 FPS
+    private var gameThread: Thread? = null
+    private var isRunning = false
+    private val gameManager = GameManager.getInstance(context)
     private val paint = Paint()
-    private val gameManager: GameManager
-    private val player: Player
+    private var lastFrameTime = System.nanoTime()
+    private val targetFrameTime = 16_666_666L // ~60 FPS
+    private val surfaceHolder: SurfaceHolder = holder
     private var isGameStarted = false
     private val startButtonBounds = RectF()
     private val replayButtonBounds = RectF()
@@ -55,10 +64,31 @@ class GameView @JvmOverloads constructor(
     init {
         holder.addCallback(this)
         isFocusable = true
-        setZOrderOnTop(true)
-        gameManager = GameManager.getInstance(context)
-        player = Player()
+        setZOrderMediaOverlay(true) // Permet aux éléments d'interface d'être visibles
+        holder.setFormat(PixelFormat.TRANSLUCENT)
         Log.d("GameView", "GameView initialized")
+        setupGameManagerListeners()
+    }
+
+    /**
+     * Initialise la vue et configure les listeners du GameManager.
+     */
+    private fun setupGameManagerListeners() {
+        gameManager.setOnGameOverListener { 
+            // Gérer le game over
+        }
+        gameManager.setOnWaveCompleteListener { wave ->
+            // Gérer la fin de vague
+        }
+        gameManager.setOnMoneyChangedListener { money ->
+            // Mettre à jour l'interface avec l'argent
+        }
+        gameManager.setOnHealthChangedListener { health ->
+            // Mettre à jour l'interface avec la santé
+        }
+        gameManager.setOnScoreChangedListener { score ->
+            // Mettre à jour l'interface avec le score
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -80,9 +110,9 @@ class GameView @JvmOverloads constructor(
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        running = true
-        lastUpdateTime = System.nanoTime()
-        thread = Thread(this).apply {
+        isRunning = true
+        lastFrameTime = System.nanoTime()
+        gameThread = Thread(this).apply {
             name = "GameThread"
             priority = Thread.MAX_PRIORITY
             start()
@@ -90,51 +120,31 @@ class GameView @JvmOverloads constructor(
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        if (width > 0 && height > 0) {
-            gameManager.setScreenDimensions(width, height)
-        }
+        gameManager.setScreenDimensions(width, height)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        running = false
-        thread?.join()
+        isRunning = false
+        gameThread?.join()
     }
 
     override fun run() {
-        var lastTime = System.nanoTime()
-        val targetTime = 1_000_000_000 / 60 // 60 FPS
-        var accumulator = 0L
-        val maxFrameSkip = 5 // Nombre maximum de frames à sauter
-
-        while (running) {
+        while (isRunning) {
             val currentTime = System.nanoTime()
-            val elapsedTime = currentTime - lastTime
-            lastTime = currentTime
-            accumulator += elapsedTime
+            val deltaTime = (currentTime - lastFrameTime) / 1_000_000_000f
+            lastFrameTime = currentTime
 
-            var framesSkipped = 0
-            while (accumulator >= targetTime && framesSkipped < maxFrameSkip) {
-                update(targetTime / 1_000_000_000f)
-                accumulator -= targetTime
-                framesSkipped++
-            }
-
-            // Si on a trop de retard, on réinitialise l'accumulateur
-            if (framesSkipped >= maxFrameSkip) {
-                accumulator = 0
-            }
-
-            // Dessiner le frame actuel
+            update(deltaTime)
             draw()
-
-            // Attendre si nécessaire
-            val sleepTime = (targetTime - (System.nanoTime() - currentTime)) / 1_000_000
-            if (sleepTime > 0) {
-                Thread.sleep(sleepTime)
-            }
         }
     }
 
+    /**
+     * Met à jour l'état du jeu.
+     * Appelle la méthode update du GameManager si le jeu est en cours.
+     * 
+     * @param deltaTime Temps écoulé depuis la dernière frame en secondes
+     */
     private fun update(deltaTime: Float) {
         if (isGameStarted && !gameManager.isGameOver()) {
             try {
@@ -147,6 +157,10 @@ class GameView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Dessine l'état actuel du jeu.
+     * Gère le rendu en fonction de l'état du jeu (menu, jeu, game over).
+     */
     private fun draw() {
         var canvas: Canvas? = null
         try {
@@ -202,20 +216,56 @@ class GameView @JvmOverloads constructor(
     private fun drawAnimatedBackground(canvas: Canvas) {
         animationTime += 0.01f
         
-        // Créer un motif animé en arrière-plan avec une opacité réduite
-        paint.shader = backgroundGradient
-        paint.alpha = 150
+        // Fond dégradé animé
+        val gradient = LinearGradient(
+            0f, 0f, width.toFloat(), height.toFloat(),
+            intArrayOf(
+                Color.parseColor("#1a2a6c"),
+                Color.parseColor("#b21f1f"),
+                Color.parseColor("#fdbb2d")
+            ),
+            floatArrayOf(0f, 0.5f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        paint.shader = gradient
+        paint.alpha = 200
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
         paint.alpha = 255
-        
-        // Ajouter des cercles animés avec une opacité réduite
         paint.shader = null
-        paint.color = Color.argb(15, 255, 255, 255) // Réduire l'opacité des cercles
-        for (i in 0..10) {
-            val x = width * (0.1f + 0.8f * sin(animationTime + i * 0.5f))
-            val y = height * (0.1f + 0.8f * cos(animationTime + i * 0.3f))
-            val radius = 50f + 20f * sin(animationTime + i * 0.2f)
+        
+        // Particules animées
+        paint.color = Color.argb(30, 255, 255, 255)
+        for (i in 0..20) {
+            val x = width * (0.1f + 0.8f * sin(animationTime + i * 0.3f))
+            val y = height * (0.1f + 0.8f * cos(animationTime + i * 0.2f))
+            val radius = 30f + 15f * sin(animationTime * 2 + i * 0.1f)
             canvas.drawCircle(x, y, radius, paint)
+        }
+        
+        // Effet de grille
+        paint.color = Color.argb(20, 255, 255, 255)
+        paint.strokeWidth = 1f
+        val gridSize = 50f
+        for (x in 0..width step gridSize.toInt()) {
+            canvas.drawLine(x.toFloat(), 0f, x.toFloat(), height.toFloat(), paint)
+        }
+        for (y in 0..height step gridSize.toInt()) {
+            canvas.drawLine(0f, y.toFloat(), width.toFloat(), y.toFloat(), paint)
+        }
+        
+        // Effet de pulsation
+        paint.color = Color.argb(15, 255, 255, 255)
+        val pulseRadius = 100f + 20f * sin(animationTime * 3)
+        canvas.drawCircle(width / 2f, height / 2f, pulseRadius, paint)
+        
+        // Effet de particules rapides
+        paint.color = Color.argb(40, 255, 255, 255)
+        for (i in 0..10) {
+            val speed = 0.5f
+            val x = width * (0.1f + 0.8f * sin(animationTime * speed + i * 0.5f))
+            val y = height * (0.1f + 0.8f * cos(animationTime * speed + i * 0.3f))
+            val size = 5f + 3f * sin(animationTime * 2 + i * 0.2f)
+            canvas.drawCircle(x, y, size, paint)
         }
     }
 
@@ -227,16 +277,23 @@ class GameView @JvmOverloads constructor(
         val topPadding = 20f
         val backgroundHeight = textSize + padding * 2
 
-        // Dessiner le fond avec un effet de verre
-        paint.color = Color.argb(150, 0, 0, 0)
-        paint.maskFilter = BlurMaskFilter(10f, BlurMaskFilter.Blur.NORMAL)
-        canvas.drawRect(0f, 0f, width.toFloat(), backgroundHeight, paint)
+        // Fond avec effet de verre amélioré
+        paint.color = Color.argb(180, 0, 0, 0)
+        paint.maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.NORMAL)
+        canvas.drawRoundRect(0f, 0f, width.toFloat(), backgroundHeight, 20f, 20f, paint)
         paint.maskFilter = null
+
+        // Effet de bordure lumineuse
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 2f
+        paint.color = Color.argb(100, 255, 255, 255)
+        canvas.drawRoundRect(0f, 0f, width.toFloat(), backgroundHeight, 20f, 20f, paint)
+        paint.style = Paint.Style.FILL
 
         paint.textSize = textSize
         paint.textAlign = Paint.Align.LEFT
 
-        // Santé avec effet de pulsation
+        // Santé avec effet de pulsation amélioré
         val health = gameManager.getHealth()
         val healthColor = when {
             health < 30 -> Color.RED
@@ -244,34 +301,36 @@ class GameView @JvmOverloads constructor(
             else -> Color.WHITE
         }
         paint.color = healthColor
-        val pulseScale = 1f + 0.1f * sin(animationTime * 2)
+        val pulseScale = 1f + 0.15f * sin(animationTime * 2)
         canvas.save()
         canvas.scale(pulseScale, pulseScale, startX, textSize + topPadding)
+        paint.setShadowLayer(8f, 0f, 0f, healthColor)
         canvas.drawText("❤ $health", startX, textSize + topPadding, paint)
+        paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
         canvas.restore()
         startX += paint.measureText("❤ $health") + spacing
 
-        // Argent avec effet de brillance
+        // Argent avec effet de brillance amélioré
         val money = gameManager.getMoney()
         paint.color = when {
             money < 50 -> Color.RED
             else -> Color.WHITE
         }
-        paint.setShadowLayer(5f, 0f, 0f, Color.parseColor("#FFD700"))
+        paint.setShadowLayer(10f, 0f, 0f, Color.parseColor("#FFD700"))
         canvas.drawText("💰 $money", startX, textSize + topPadding, paint)
         paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
         startX += paint.measureText("💰 $money") + spacing
 
-        // Vague avec animation
+        // Vague avec animation améliorée
         paint.color = Color.WHITE
-        paint.setShadowLayer(3f, 0f, 0f, Color.BLUE)
+        paint.setShadowLayer(8f, 0f, 0f, Color.BLUE)
         canvas.drawText("🌊 ${gameManager.getCurrentWave() + 1}", startX, textSize + topPadding, paint)
         paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
         startX += paint.measureText("🌊 ${gameManager.getCurrentWave() + 1}") + spacing
 
-        // Score avec effet de brillance
+        // Score avec effet de brillance amélioré
         paint.color = Color.WHITE
-        paint.setShadowLayer(5f, 0f, 0f, Color.parseColor("#FFD700"))
+        paint.setShadowLayer(10f, 0f, 0f, Color.parseColor("#FFD700"))
         canvas.drawText("🏆 ${gameManager.getScore()}", startX, textSize + topPadding, paint)
         paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
     }
@@ -311,11 +370,24 @@ class GameView @JvmOverloads constructor(
         val towerTypes = listOf(TowerType.BASIC, TowerType.SNIPER, TowerType.RAPID)
         val towerNames = listOf("Basique", "Sniper", "Rapide")
 
+        // Fond du menu avec effet de verre
+        paint.color = Color.argb(180, 0, 0, 0)
+        paint.maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.NORMAL)
+        canvas.drawRoundRect(0f, buttonY, width.toFloat(), height.toFloat(), 30f, 30f, paint)
+        paint.maskFilter = null
+
+        // Effet de bordure lumineuse
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 2f
+        paint.color = Color.argb(100, 255, 255, 255)
+        canvas.drawRoundRect(0f, buttonY, width.toFloat(), height.toFloat(), 30f, 30f, paint)
+        paint.style = Paint.Style.FILL
+
         for (i in towerTypes.indices) {
             val top = buttonY + buttonHeight * i
             val bottom = top + buttonHeight
 
-            // Fond du bouton avec dégradé
+            // Fond du bouton avec dégradé amélioré
             val buttonGradient = LinearGradient(
                 0f, top, 0f, bottom,
                 towerTypes[i].color,
@@ -325,16 +397,22 @@ class GameView @JvmOverloads constructor(
                 Shader.TileMode.CLAMP
             )
             paint.shader = buttonGradient
-            paint.setShadowLayer(6f, 0f, 4f, Color.DKGRAY)
-            canvas.drawRoundRect(RectF(0f, top, width.toFloat(), bottom), 30f, 30f, paint)
+            paint.setShadowLayer(8f, 0f, 4f, Color.DKGRAY)
+            canvas.drawRoundRect(RectF(0f, top, width.toFloat(), bottom), 25f, 25f, paint)
             paint.shader = null
 
-            // Texte avec effet de brillance
+            // Effet de survol
+            if (gameManager.getSelectedTowerType() == towerTypes[i]) {
+                paint.color = Color.argb(50, 255, 255, 255)
+                canvas.drawRoundRect(RectF(0f, top, width.toFloat(), bottom), 25f, 25f, paint)
+            }
+
+            // Texte avec effet de brillance amélioré
             paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
             paint.color = Color.WHITE
             paint.textSize = 36f
             paint.textAlign = Paint.Align.CENTER
-            paint.setShadowLayer(3f, 0f, 0f, Color.WHITE)
+            paint.setShadowLayer(5f, 0f, 0f, Color.WHITE)
             canvas.drawText("${towerNames[i]} - ${towerTypes[i].cost}$", 
                           width / 2f, top + buttonHeight / 2 + 10f, paint)
             paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
@@ -342,39 +420,51 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawGameOver(canvas: Canvas) {
-        // Fond semi-transparent
+        // Fond semi-transparent avec effet de flou
         paint.color = Color.argb(200, 0, 0, 0)
+        paint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        paint.maskFilter = null
 
-        // Texte Game Over avec effet
+        // Texte Game Over avec effet amélioré
         paint.color = Color.WHITE
         paint.textSize = 80f
         paint.textAlign = Paint.Align.CENTER
-        paint.setShadowLayer(10f, 0f, 0f, Color.RED)
+        paint.setShadowLayer(15f, 0f, 0f, Color.RED)
         canvas.drawText("Game Over", width / 2f, height * 0.3f, paint)
         paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
 
-        // Score avec effet de brillance
+        // Score avec effet de brillance amélioré
         paint.textSize = 40f
-        paint.setShadowLayer(5f, 0f, 0f, Color.parseColor("#FFD700"))
+        paint.setShadowLayer(10f, 0f, 0f, Color.parseColor("#FFD700"))
         canvas.drawText("Score: ${gameManager.getScore()}", width / 2f, height * 0.4f, paint)
         paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
 
-        // Bouton Rejouer avec effet de survol
+        // Bouton Rejouer avec effet de survol amélioré
         paint.shader = buttonGradient
-        paint.setShadowLayer(8f, 0f, 4f, Color.BLACK)
-        canvas.drawRoundRect(replayButtonBounds, 20f, 20f, paint)
+        paint.setShadowLayer(12f, 0f, 6f, Color.BLACK)
+        canvas.drawRoundRect(replayButtonBounds, 30f, 30f, paint)
         paint.shader = null
 
-        // Texte du bouton
+        // Effet de survol sur le bouton
+        paint.color = Color.argb(50, 255, 255, 255)
+        canvas.drawRoundRect(replayButtonBounds, 30f, 30f, paint)
+
+        // Texte du bouton avec effet amélioré
         paint.color = Color.WHITE
         paint.textSize = 40f
-        paint.setShadowLayer(3f, 0f, 0f, Color.WHITE)
+        paint.setShadowLayer(5f, 0f, 0f, Color.WHITE)
         canvas.drawText("Rejouer", replayButtonBounds.centerX(), 
                        replayButtonBounds.centerY() + paint.textSize / 3, paint)
         paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
     }
 
+    /**
+     * Gère les événements tactiles.
+     * 
+     * @param event L'événement tactile
+     * @return true si l'événement a été traité, false sinon
+     */
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -409,6 +499,10 @@ class GameView @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
 
+    /**
+     * Démarre une nouvelle partie.
+     * Initialise l'état du jeu et démarre la boucle de jeu.
+     */
     private fun startGame() {
         isGameStarted = true
         gameManager.startGame()
@@ -430,22 +524,31 @@ class GameView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Reprend le jeu après une pause.
+     * Relance la boucle de jeu.
+     */
     fun resume() {
-        if (!running) {
-            running = true
-            thread = Thread(this).apply { start() }
+        if (!isRunning) {
+            isRunning = true
+            lastFrameTime = System.nanoTime()
+            gameThread = Thread(this).apply { start() }
         }
     }
 
+    /**
+     * Met le jeu en pause.
+     * Arrête la boucle de jeu.
+     */
     fun pause() {
-        running = false
-        thread?.join()
+        isRunning = false
+        gameThread?.join()
     }
 
     fun cleanup() {
-        running = false
+        isRunning = false
         try {
-            thread?.join()
+            gameThread?.join()
         } catch (e: InterruptedException) {
             e.printStackTrace()
         }
