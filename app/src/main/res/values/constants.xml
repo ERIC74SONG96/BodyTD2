@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ennemis -->
+    <integer name="virus_health">50</integer>
+    <integer name="virus_speed">300</integer>
+    <integer name="virus_damage">2</integer>
+    <integer name="virus_reward">20</integer>
+
+    <integer name="bacteria_health">100</integer>
+    <integer name="bacteria_speed">150</integer>
+    <integer name="bacteria_damage">3</integer>
+    <integer name="bacteria_reward">30</integer>
+
+    <integer name="parasite_health">200</integer>
+    <integer name="parasite_speed">50</integer>
+    <integer name="parasite_damage">3</integer>
+    <integer name="parasite_reward">30</integer>
+
+    <!-- Tours -->
+    <integer name="basic_tower_damage">10</integer>
+    <integer name="basic_tower_range">100</integer>
+    <integer name="basic_tower_cost">50</integer>
+    <integer name="basic_tower_cooldown">1000</integer>
+
+    <integer name="sniper_tower_damage">30</integer>
+    <integer name="sniper_tower_range">200</integer>
+    <integer name="sniper_tower_cost">100</integer>
+    <integer name="sniper_tower_cooldown">2000</integer>
+
+    <integer name="rapid_tower_damage">5</integer>
+    <integer name="rapid_tower_range">80</integer>
+    <integer name="rapid_tower_cost">75</integer>
+    <integer name="rapid_tower_cooldown">500</integer>
+
+    <!-- Jeu -->
+    <integer name="initial_money">350</integer>
+    <integer name="initial_health">100</integer>
+    <integer name="wave_break_time">10</integer>
+    <integer name="bonus_health_reward">10</integer>
+</resources> 
