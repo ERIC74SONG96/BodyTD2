@@ -23,7 +23,7 @@ import kotlin.math.sin
 import kotlin.math.cos
 
 class GameManager private constructor(private val context: Context) {
-    private var money = 100
+    private var money = 500
     private var health = 100
     private var score = 0
     private var currentWave = 0
@@ -91,7 +91,7 @@ class GameManager private constructor(private val context: Context) {
         try {
             // Réinitialisation complète du jeu
             isGameStarted = true
-            money = 100
+            money = 500
             health = 100
             score = 0
             currentWave = 0
@@ -136,7 +136,7 @@ class GameManager private constructor(private val context: Context) {
 
     private fun resetGameState() {
         isGameStarted = false
-        money = 100
+        money = 500
         health = 100
         score = 0
         currentWave = 0
