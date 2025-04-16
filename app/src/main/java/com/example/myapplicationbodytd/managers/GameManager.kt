@@ -254,7 +254,7 @@ class GameManager private constructor(private val context: Context) {
         synchronized(this) {
             try {
                 val damage = enemy.damage.toInt().coerceAtLeast(0)
-                health = (health - damage).coerceIn(0, 100)
+                health = (health - damage).coerceAtLeast(0)
                 onHealthChangedListener?.invoke(health)
                 soundManager.playSound(SoundType.ENEMY_HIT)
                 if (health <= 0) {
@@ -311,8 +311,8 @@ class GameManager private constructor(private val context: Context) {
         if (isGameOver) return
 
         try {
-            // Vérifier si on a atteint la limite de 7 vagues
-            if (currentWave >= 7) {
+            // Vérifier si on a atteint la vague 5
+            if (currentWave >= 5) {
                 // Victoire ! Ajouter un bonus de score final
                 val victoryBonus = 1000 + (health * 10)  // Bonus basé sur la santé restante
                 score += victoryBonus
@@ -331,18 +331,6 @@ class GameManager private constructor(private val context: Context) {
             val waveBonus = calculateWaveBonus()
             addMoney(waveBonus)
             
-            // Ajout du score à la fin de la vague
-            val waveScore = calculateWaveScore()
-            score += waveScore
-            onScoreChangedListener?.invoke(score)
-            Log.d("GameManager", "Score de vague ajouté: +$waveScore (Total: $score)")
-            
-            // Bonus de santé si le joueur est en difficulté
-            if (health < 50) {
-                health = minOf(100, health + bonusHealthReward)
-                onHealthChangedListener?.invoke(health)
-            }
-            
             soundManager.playSound(SoundType.WAVE_COMPLETE)
             onWaveCompleteListener?.invoke(currentWave)
         } catch (e: Exception) {
@@ -355,17 +343,23 @@ class GameManager private constructor(private val context: Context) {
         return (baseBonus * bonusMoneyMultiplier).toInt()
     }
 
-    private fun calculateWaveScore(): Int {
-        // Score de base pour la vague
-        val baseScore = 100 + (currentWave * 50)
-        // Bonus pour chaque ennemi tué dans la vague
-        val enemyBonus = enemies.size * 10
-        return baseScore + enemyBonus
-    }
-
     private fun endWaveBreak() {
         try {
             isWaveBreak = false
+            
+            // Vérifier si on a atteint la vague 5
+            if (currentWave >= 5) {
+                // Victoire ! Ajouter un bonus de score final
+                val victoryBonus = 1000 + (health * 10)  // Bonus basé sur la santé restante
+                score += victoryBonus
+                onScoreChangedListener?.invoke(score)
+                Log.d("GameManager", "Jeu terminé ! Bonus de victoire: +$victoryBonus")
+                soundManager.playSound(SoundType.GAME_OVER)
+                isGameOver = true
+                onGameOverListener?.invoke()
+                return
+            }
+            
             currentWave++
             
             // Augmenter progressivement les bonus
@@ -733,8 +727,16 @@ class GameManager private constructor(private val context: Context) {
 
         synchronized(this) {
             try {
-                // On ne met plus à jour le score ici
-                Log.d("GameManager", "Enemy touché: ${enemy.javaClass.simpleName}")
+                // Augmenter le score à chaque hit
+                val hitScore = when (enemy) {
+                    is Virus -> 2
+                    is Bacteria -> 3
+                    is Parasite -> 5
+                    else -> 1
+                }
+                score += hitScore
+                onScoreChangedListener?.invoke(score)
+                Log.d("GameManager", "Enemy touché: ${enemy.javaClass.simpleName}, Score: +$hitScore (Total: $score)")
             } catch (e: Exception) {
                 e.printStackTrace()
                 Log.e("GameManager", "Erreur lors de la mise à jour du score (hit)", e)

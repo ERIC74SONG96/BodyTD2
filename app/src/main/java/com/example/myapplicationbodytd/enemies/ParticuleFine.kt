@@ -15,31 +15,31 @@ class Virus(position: PointF) : Enemy(
     position = position,
     health = 50f,
     maxHealth = 50f,
-    speed = 150f,
-    damage = 1f,
-    reward = 10
+    speed = 300f,
+    damage = 2f,
+    reward = 20
 ) {
     override val type: EnemyType = EnemyType.VIRUS
 
     override fun drawEnemy(canvas: Canvas, paint: Paint) {
-        // Effet de pulsation
-        val pulseScale = 1f + 0.1f * sin(animationProgress * 4 * PI.toFloat())
+        // Effet de pulsation plus rapide
+        val pulseScale = 1f + 0.15f * sin(animationProgress * 6 * PI.toFloat())
 
-        // Effet de brillance
+        // Effet de brillance plus intense
         val glowPaint = Paint(paint).apply {
-            color = Color.argb(100, 255, 0, 0)
-            maskFilter = BlurMaskFilter(10f, BlurMaskFilter.Blur.OUTER)
+            color = Color.argb(150, 255, 0, 0)
+            maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.OUTER)
         }
-        canvas.drawCircle(position.x, position.y, 12f * pulseScale, glowPaint)
+        canvas.drawCircle(position.x, position.y, 15f * pulseScale, glowPaint)
 
         // Corps principal
         paint.color = Color.rgb(255, 0, 0)
-        canvas.drawCircle(position.x, position.y, 10f * pulseScale, paint)
+        canvas.drawCircle(position.x, position.y, 12f * pulseScale, paint)
 
-        // Détails
+        // Détails plus visibles
         paint.color = Color.WHITE
-        canvas.drawCircle(position.x, position.y, 3f * pulseScale, paint)
+        canvas.drawCircle(position.x, position.y, 4f * pulseScale, paint)
     }
 
-    override fun getEnemyRadius(): Float = 10f
+    override fun getEnemyRadius(): Float = 12f
 }

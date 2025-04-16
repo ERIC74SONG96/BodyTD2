@@ -10,9 +10,14 @@ class WaveManager {
     private var currentWave = 0
     private val enemiesToSpawn = mutableListOf<Enemy>()
     private var spawnTimer = 0f
-    private val spawnInterval = 1.0f
+    private val spawnInterval = 0.7f
 
     fun startNextWave(spawnPoint: PointF) {
+        // Ne pas dépasser la vague 5
+        if (currentWave >= 5) {
+            return
+        }
+        
         currentWave++
         enemiesToSpawn.clear()
         
@@ -20,15 +25,15 @@ class WaveManager {
         
         // Distribution des ennemis selon la vague
         when {
-            currentWave <= 3 -> {
-                // Vagues 1-3: Uniquement des Virus
+            currentWave <= 2 -> {
+                // Vagues 1-2: Uniquement des Virus
                 repeat(numberOfEnemies) {
                     val enemy = Virus(PointF(spawnPoint.x, spawnPoint.y))
                     enemiesToSpawn.add(enemy)
                 }
             }
-            currentWave <= 6 -> {
-                // Vagues 4-6: Virus et Bactéries
+            currentWave <= 4 -> {
+                // Vagues 3-4: Virus et Bactéries
                 repeat(numberOfEnemies / 2) {
                     val virus = Virus(PointF(spawnPoint.x, spawnPoint.y))
                     val bacteria = Bacteria(PointF(spawnPoint.x, spawnPoint.y))
@@ -41,8 +46,8 @@ class WaveManager {
                     enemiesToSpawn.add(virus)
                 }
             }
-            else -> {
-                // Vagues 7+: Tous les types d'ennemis
+            currentWave == 5 -> {
+                // Vague 5: Tous les types d'ennemis
                 val baseCount = numberOfEnemies / 3
                 repeat(baseCount) {
                     val virus = Virus(PointF(spawnPoint.x, spawnPoint.y))
@@ -88,7 +93,7 @@ class WaveManager {
     fun getCurrentWave(): Int = currentWave
 
     private fun calculateEnemiesForWave(): Int {
-        return 5 + currentWave * 2
+        return 12 + currentWave * 4
     }
 
     fun reset() {

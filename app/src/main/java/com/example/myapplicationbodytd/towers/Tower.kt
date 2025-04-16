@@ -4,17 +4,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PointF
-import android.graphics.LinearGradient
-import android.graphics.Shader
-import android.graphics.BlurMaskFilter
 import com.example.myapplicationbodytd.enemies.Enemy
-import com.example.myapplicationbodytd.enemies.BasicEnemy
-import com.example.myapplicationbodytd.towers.strategies.AttackStrategy
-import com.example.myapplicationbodytd.towers.strategies.MultiTargetStrategy
-import com.example.myapplicationbodytd.towers.strategies.SingleTargetStrategy
-import kotlin.math.sin
-import kotlin.math.cos
-import kotlin.math.PI
 import kotlin.math.sqrt
 
 abstract class Tower(
@@ -32,25 +22,17 @@ abstract class Tower(
     private var isSelected = false
     protected val projectiles = mutableListOf<Projectile>()
     protected var target: Enemy? = null
+    protected var animationProgress = 0f
     
     // Callback pour les ennemis touchés
     var onEnemyHitListener: ((Enemy) -> Unit)? = null
 
     open fun update(currentTime: Long, enemies: List<Enemy>) {
+        // Mise à jour de l'animation
+        animationProgress = (animationProgress + 0.016f * attackSpeed) % 1f
+
         // Mise à jour des projectiles
-        val iterator = projectiles.iterator()
-        while (iterator.hasNext()) {
-            val projectile = iterator.next()
-            val hitEnemy = projectile.update(0.016f, enemies)
-            if (hitEnemy != null) {
-                hitEnemy.takeDamage(projectile.damage)
-                // Notifier que l'ennemi a été touché
-                onEnemyHitListener?.invoke(hitEnemy)
-                iterator.remove()
-            } else if (!projectile.isActive) {
-                iterator.remove()
-            }
-        }
+        updateProjectiles(enemies)
 
         // Recherche d'une cible
         if (currentTime - lastAttackTime >= (1000 / attackSpeed).toLong()) {
@@ -62,24 +44,32 @@ abstract class Tower(
         }
     }
 
-    protected fun findNearestEnemy(enemies: List<Enemy>): Enemy? {
-        var nearestEnemy: Enemy? = null
-        var minDistance = Float.MAX_VALUE
-
-        for (enemy in enemies) {
-            if (enemy.position == null) continue
-            val distance = calculateDistance(position, enemy.position)
-            if (distance <= range && distance < minDistance) {
-                minDistance = distance
-                nearestEnemy = enemy
+    protected fun updateProjectiles(enemies: List<Enemy>) {
+        val iterator = projectiles.iterator()
+        while (iterator.hasNext()) {
+            val projectile = iterator.next()
+            val hitEnemy = projectile.update(0.016f, enemies)
+            if (hitEnemy != null) {
+                hitEnemy.takeDamage(projectile.damage)
+                onEnemyHitListener?.invoke(hitEnemy)
+                iterator.remove()
+            } else if (!projectile.isActive) {
+                iterator.remove()
             }
         }
+    }
 
-        return nearestEnemy
+    protected fun findNearestEnemy(enemies: List<Enemy>): Enemy? {
+        return enemies
+            .filter { it.position != null }
+            .minByOrNull { calculateDistance(position, it.position!!) }
+            ?.takeIf { calculateDistance(position, it.position!!) <= range }
     }
 
     protected fun calculateDistance(start: PointF, end: PointF): Float {
-        return sqrt((end.x - start.x) * (end.x - start.x) + (end.y - start.y) * (end.y - start.y))
+        val dx = end.x - start.x
+        val dy = end.y - start.y
+        return sqrt(dx * dx + dy * dy)
     }
 
     protected abstract fun attack(target: Enemy)
@@ -94,70 +84,43 @@ abstract class Tower(
 
         // Dessiner la portée si sélectionnée
         if (isSelected) {
-            paint.color = android.graphics.Color.argb(50, 255, 255, 255)
+            paint.color = Color.argb(50, 255, 255, 255)
             canvas.drawCircle(position.x, position.y, range, paint)
         }
 
         // Dessiner le niveau
-        paint.color = android.graphics.Color.WHITE
+        paint.color = Color.WHITE
         paint.textSize = 30f
         canvas.drawText(level.toString(), position.x - 10f, position.y + 10f, paint)
 
         // Dessiner les projectiles
-        for (projectile in projectiles) {
-            projectile.draw(canvas, paint)
-        }
+        projectiles.forEach { it.draw(canvas, paint) }
     }
 
-    fun select() {
-        isSelected = true
-    }
-
-    fun deselect() {
-        isSelected = false
-    }
-
+    fun select() { isSelected = true }
+    fun deselect() { isSelected = false }
     fun canUpgrade(): Boolean = level < maxLevel
-
     fun calculateUpgradeCost(): Int = upgradeCost * level
-
-    fun upgrade() {
-        if (canUpgrade()) {
-            level++
-        }
-    }
+    fun upgrade() { if (canUpgrade()) level++ }
 }
 
-class BasicTower(position: PointF) : Tower(
-    position = position,
-    level = 1
-) {
-    override val type: TowerType = TowerType.BASIC
-    override val range: Float = 200f
-    override val damage: Float = 20f
-    override val attackSpeed: Float = 1.5f
-    override val upgradeCost: Int = 100
-    override val maxLevel: Int = 3
-
-    private var animationProgress = 0f
-
-    override fun update(currentTime: Long, enemies: List<Enemy>) {
-        super.update(currentTime, enemies)
-
-        // Mise à jour de l'animation
-        animationProgress = (animationProgress + 0.016f * 2) % 1f
-    }
+class BasicTower(position: PointF) : Tower(position) {
+    override val type = TowerType.BASIC
+    override val range = 200f
+    override val damage = 20f
+    override val attackSpeed = 1.5f
+    override val upgradeCost = 100
+    override val maxLevel = 3
 
     override fun attack(enemy: Enemy) {
-        if (enemy.position != null) {
-            val projectile = Projectile(
+        enemy.position?.let { pos ->
+            projectiles.add(Projectile(
                 startPosition = PointF(position.x, position.y),
-                targetPosition = enemy.position,
+                targetPosition = pos,
                 speed = 1200f,
                 damage = damage,
                 color = Color.GRAY
-            )
-            projectiles.add(projectile)
+            ))
         }
     }
 
@@ -172,37 +135,23 @@ class BasicTower(position: PointF) : Tower(
     }
 }
 
-class SniperTower(position: PointF) : Tower(
-    position = position,
-    level = 1
-) {
-    override val type: TowerType = TowerType.SNIPER
-    override val range: Float = 400f
-    override val damage: Float = 50f
-    override val attackSpeed: Float = 0.5f
-    override val upgradeCost: Int = 200
-    override val maxLevel: Int = 3
-
-    private var animationProgress = 0f
-    private val attackStrategy = SingleTargetStrategy()
-
-    override fun update(currentTime: Long, enemies: List<Enemy>) {
-        super.update(currentTime, enemies)
-
-        // Mise à jour de l'animation
-        animationProgress = (animationProgress + 0.016f * 3) % 1f
-    }
+class SniperTower(position: PointF) : Tower(position) {
+    override val type = TowerType.SNIPER
+    override val range = 400f
+    override val damage = 50f
+    override val attackSpeed = 0.5f
+    override val upgradeCost = 200
+    override val maxLevel = 3
 
     override fun attack(enemy: Enemy) {
-        if (enemy.position != null) {
-            val projectile = Projectile(
+        enemy.position?.let { pos ->
+            projectiles.add(Projectile(
                 startPosition = PointF(position.x, position.y),
-                targetPosition = enemy.position,
+                targetPosition = pos,
                 speed = 2500f,
                 damage = damage,
                 color = Color.GREEN
-            )
-            projectiles.add(projectile)
+            ))
         }
     }
 
@@ -217,37 +166,23 @@ class SniperTower(position: PointF) : Tower(
     }
 }
 
-class RapidTower(position: PointF) : Tower(
-    position = position,
-    level = 1
-) {
-    override val type: TowerType = TowerType.RAPID
-    override val range: Float = 150f
-    override val damage: Float = 10f
-    override val attackSpeed: Float = 5.0f
-    override val upgradeCost: Int = 150
-    override val maxLevel: Int = 3
-
-    private var animationProgress = 0f
-    private val attackStrategy = MultiTargetStrategy()
-
-    override fun update(currentTime: Long, enemies: List<Enemy>) {
-        super.update(currentTime, enemies)
-
-        // Mise à jour de l'animation
-        animationProgress = (animationProgress + 0.016f * 6) % 1f
-    }
+class RapidTower(position: PointF) : Tower(position) {
+    override val type = TowerType.RAPID
+    override val range = 150f
+    override val damage = 10f
+    override val attackSpeed = 5.0f
+    override val upgradeCost = 150
+    override val maxLevel = 3
 
     override fun attack(enemy: Enemy) {
-        if (enemy.position != null) {
-            val projectile = Projectile(
+        enemy.position?.let { pos ->
+            projectiles.add(Projectile(
                 startPosition = PointF(position.x, position.y),
-                targetPosition = enemy.position,
+                targetPosition = pos,
                 speed = 2000f,
                 damage = damage,
                 color = Color.RED
-            )
-            projectiles.add(projectile)
+            ))
         }
     }
 
