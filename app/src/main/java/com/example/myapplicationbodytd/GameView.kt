@@ -19,8 +19,10 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import com.example.myapplicationbodytd.managers.GameManager
 import com.example.myapplicationbodytd.towers.TowerType
-import kotlin.math.cos
 import kotlin.math.sin
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+
 
 /**
  * GameView est la vue principale du jeu qui gère le rendu et les interactions utilisateur.
@@ -48,6 +50,7 @@ class GameView @JvmOverloads constructor(
     private val startButtonBounds = RectF()
     private val replayButtonBounds = RectF()
     private var animationTime = 0f
+    private var backgroundBitmap: Bitmap? = null
     private val backgroundGradient = LinearGradient(0f, 0f, 0f, 0f, 
         intArrayOf(
             Color.parseColor("#1a2a6c"),
@@ -73,11 +76,14 @@ class GameView @JvmOverloads constructor(
         holder.setFormat(PixelFormat.TRANSLUCENT)
         Log.d("GameView", "GameView initialized")
         setupGameManagerListeners()
+        // Charger l'image du fond d'écran
+        backgroundBitmap = BitmapFactory.decodeResource(context.resources, R.drawable.poumon)
     }
 
     /**
      * Initialise la vue et configure les listeners du GameManager.
      */
+
     private fun setupGameManagerListeners() {
         gameManager.setOnGameOverListener { 
             // Gérer le game over
@@ -204,17 +210,23 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawGame(canvas: Canvas) {
-        // Dessiner le fond animé
-        drawAnimatedBackground(canvas)
-        
+        // Redimensionner l'image de fond à la taille du Canvas
+        if (backgroundBitmap != null) {
+            val width = canvas.width
+            val height = canvas.height
+            val resizedBitmap = Bitmap.createScaledBitmap(backgroundBitmap!!, width, height, false)
+            canvas.drawBitmap(resizedBitmap, 0f, 0f, null)
+        }
+
+        // Continuez avec le reste du rendu du jeu
         canvas.save()
         canvas.clipRect(0f, 0f, width.toFloat(), gameManager.getGameAreaBottom())
-        
+
         // Réduire l'effet de flou pour l'arrière-plan
         paint.maskFilter = BlurMaskFilter(5f, BlurMaskFilter.Blur.OUTER)
         gameManager.draw(canvas, paint)
         paint.maskFilter = null
-        
+
         // Dessiner les contours des éléments du jeu
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 2f
@@ -223,7 +235,7 @@ class GameView @JvmOverloads constructor(
         gameManager.draw(canvas, paint)
         paint.style = Paint.Style.FILL
         paint.alpha = 255
-        
+
         canvas.restore()
 
         // Dessiner les informations du jeu avec un style amélioré
@@ -232,53 +244,6 @@ class GameView @JvmOverloads constructor(
         // Menu des tours avec effets visuels
         if (isGameStarted && !gameManager.isGameOver()) {
             drawTowerMenu(canvas)
-        }
-    }
-
-    private fun drawAnimatedBackground(canvas: Canvas) {
-        animationTime += 0.01f
-
-        // Fond dégradé animé
-        val gradient = LinearGradient(
-            0f, 0f, width.toFloat(), height.toFloat(),
-            intArrayOf(
-                Color.parseColor("#1a2a6c"),
-                Color.parseColor("#b21f1f"),
-                Color.parseColor("#fdbb2d")
-            ),
-            floatArrayOf(0f, 0.5f, 1f),
-            Shader.TileMode.CLAMP
-        )
-        paint.shader = gradient
-        paint.alpha = 200
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-        paint.alpha = 255
-        paint.shader = null
-
-        // Effet de grille
-        paint.color = Color.argb(20, 255, 255, 255)
-        paint.strokeWidth = 1f
-        val gridSize = 50f
-        for (x in 0..width step gridSize.toInt()) {
-            canvas.drawLine(x.toFloat(), 0f, x.toFloat(), height.toFloat(), paint)
-        }
-        for (y in 0..height step gridSize.toInt()) {
-            canvas.drawLine(0f, y.toFloat(), width.toFloat(), y.toFloat(), paint)
-        }
-        
-        // Effet de pulsation
-        paint.color = Color.argb(15, 255, 255, 255)
-        val pulseRadius = 100f + 20f * sin(animationTime * 3)
-        canvas.drawCircle(width / 2f, height / 2f, pulseRadius, paint)
-        
-        // Effet de particules rapides
-        paint.color = Color.argb(40, 255, 255, 255)
-        for (i in 0..10) {
-            val speed = 0.5f
-            val x = width * (0.1f + 0.8f * sin(animationTime * speed + i * 0.5f))
-            val y = height * (0.1f + 0.8f * cos(animationTime * speed + i * 0.3f))
-            val size = 5f + 3f * sin(animationTime * 2 + i * 0.2f)
-            canvas.drawCircle(x, y, size, paint)
         }
     }
 

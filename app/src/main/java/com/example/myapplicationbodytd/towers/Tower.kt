@@ -22,7 +22,7 @@ abstract class Tower( //cette classe ne peut pas être instanciée directement
     private var isSelected = false
     protected val projectiles = mutableListOf<Projectile>()
     private var animationProgress = 0f
-    
+
     // Callback pour les ennemis touchés
     var onEnemyHitListener: ((Enemy) -> Unit)? = null
 
@@ -99,4 +99,3 @@ abstract class Tower( //cette classe ne peut pas être instanciée directement
     fun select() { isSelected = true }
     fun deselect() { isSelected = false }
 }
-
