@@ -134,22 +134,39 @@ class GameView @JvmOverloads constructor(
     }
 
     override fun run() {
-        while (isRunning) {
-            val currentTime = System.nanoTime()
-            val deltaTime = (currentTime - lastFrameTime) / 1_000_000_000f
-            lastFrameTime = currentTime
+        val frameTime = 1000L / 60L // durée d'une frame à 60 FPS (~16ms)
 
+        while (isRunning) {
+            val startTime = System.nanoTime()
+
+            // Calcul du temps écoulé entre deux frames (en secondes)
+            val deltaTime = (startTime - lastFrameTime) / 1_000_000_000f
+            lastFrameTime = startTime
+
+            // Logique du jeu et dessin
             update(deltaTime)
             draw()
+
+            // Calcul du temps utilisé pour update + draw (en millisecondes)
+            val elapsedTime = (System.nanoTime() - startTime) / 1_000_000L
+            val sleepTime = frameTime - elapsedTime
+
+            if (sleepTime > 0) {
+                try {
+                    Thread.sleep(sleepTime)
+                } catch (e: InterruptedException) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
-
     /**
      * Met à jour l'état du jeu.
      * Appelle la méthode update du GameManager si le jeu est en cours.
      * 
      * @param deltaTime Temps écoulé depuis la dernière frame en secondes
      */
+
     private fun update(deltaTime: Float) {
         if (isGameStarted && !gameManager.isGameOver()) {
             try {
@@ -220,7 +237,7 @@ class GameView @JvmOverloads constructor(
 
     private fun drawAnimatedBackground(canvas: Canvas) {
         animationTime += 0.01f
-        
+
         // Fond dégradé animé
         val gradient = LinearGradient(
             0f, 0f, width.toFloat(), height.toFloat(),
@@ -237,16 +254,7 @@ class GameView @JvmOverloads constructor(
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
         paint.alpha = 255
         paint.shader = null
-        
-        // Particules animées
-        paint.color = Color.argb(30, 255, 255, 255)
-        for (i in 0..20) {
-            val x = width * (0.1f + 0.8f * sin(animationTime + i * 0.3f))
-            val y = height * (0.1f + 0.8f * cos(animationTime + i * 0.2f))
-            val radius = 30f + 15f * sin(animationTime * 2 + i * 0.1f)
-            canvas.drawCircle(x, y, radius, paint)
-        }
-        
+
         // Effet de grille
         paint.color = Color.argb(20, 255, 255, 255)
         paint.strokeWidth = 1f

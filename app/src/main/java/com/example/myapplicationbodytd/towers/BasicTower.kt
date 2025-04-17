@@ -7,7 +7,7 @@ import com.example.myapplicationbodytd.enemies.Enemy
 class BasicTower(position: PointF) : Tower(position) {
     override val type = TowerType.BASIC
     override val range = 200f
-    override val damage = 20f
+    override val damage = 10f
     override val attackSpeed = 1.5f
     override val upgradeCost = 100
     override val maxLevel = 3
