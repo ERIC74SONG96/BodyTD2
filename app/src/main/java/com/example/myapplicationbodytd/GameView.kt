@@ -51,7 +51,7 @@ class GameView @JvmOverloads constructor(
     private val replayButtonBounds = RectF()
     private var animationTime = 0f
     private var backgroundBitmap: Bitmap? = null
-    private val backgroundGradient = LinearGradient(0f, 0f, 0f, 0f, 
+    private val backgroundGradient = LinearGradient(0f, 0f, 0f, 0f,
         intArrayOf(
             Color.parseColor("#1a2a6c"),
             Color.parseColor("#b21f1f"),
@@ -112,11 +112,7 @@ class GameView @JvmOverloads constructor(
             val buttonY = h * 0.4f
             startButtonBounds.set(buttonX, buttonY, buttonX + buttonWidth, buttonY + buttonHeight)
             replayButtonBounds.set(buttonX, buttonY, buttonX + buttonWidth, buttonY + buttonHeight)
-            
-            // Mettre à jour les dégradés avec les nouvelles dimensions
-            backgroundGradient.setLocalMatrix(Matrix().apply { setScale(1f, h.toFloat()) })
-            menuGradient.setLocalMatrix(Matrix().apply { setScale(1f, h.toFloat()) })
-            buttonGradient.setLocalMatrix(Matrix().apply { setScale(1f, buttonHeight) })
+
         }
     }
 
@@ -223,7 +219,6 @@ class GameView @JvmOverloads constructor(
         canvas.clipRect(0f, 0f, width.toFloat(), gameManager.getGameAreaBottom())
 
         // Réduire l'effet de flou pour l'arrière-plan
-        paint.maskFilter = BlurMaskFilter(5f, BlurMaskFilter.Blur.OUTER)
         gameManager.draw(canvas, paint)
         paint.maskFilter = null
 
@@ -282,9 +277,7 @@ class GameView @JvmOverloads constructor(
         val pulseScale = 1f + 0.15f * sin(animationTime * 2)
         canvas.save()
         canvas.scale(pulseScale, pulseScale, startX, textSize + topPadding)
-        paint.setShadowLayer(8f, 0f, 0f, healthColor)
         canvas.drawText("❤ $health", startX, textSize + topPadding, paint)
-        paint.setShadowLayer(0f, 0f, 0f, Color.BLACK)
         canvas.restore()
         startX += paint.measureText("❤ $health") + spacing
 
@@ -314,11 +307,6 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawStartMenu(canvas: Canvas) {
-        // Fond animé
-        paint.shader = menuGradient
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-        paint.shader = null
-
         // Titre avec effet de brillance
         paint.color = Color.WHITE
         paint.textSize = 100f
@@ -347,12 +335,6 @@ class GameView @JvmOverloads constructor(
 
         val towerTypes = listOf(TowerType.BASIC, TowerType.SNIPER, TowerType.RAPID)
         val towerNames = listOf("Basique", "Sniper", "Rapide")
-
-        // Fond du menu avec effet de verre
-        paint.color = Color.argb(180, 0, 0, 0)
-        paint.maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.NORMAL)
-        canvas.drawRoundRect(0f, buttonY, width.toFloat(), height.toFloat(), 30f, 30f, paint)
-        paint.maskFilter = null
 
         // Effet de bordure lumineuse
         paint.style = Paint.Style.STROKE
@@ -398,11 +380,6 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawGameOver(canvas: Canvas) {
-        // Fond semi-transparent avec effet de flou
-        paint.color = Color.argb(200, 0, 0, 0)
-        paint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-        paint.maskFilter = null
 
         // Texte Game Over avec effet amélioré
         paint.color = Color.WHITE

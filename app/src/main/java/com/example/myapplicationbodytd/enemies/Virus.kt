@@ -1,13 +1,9 @@
 package com.example.myapplicationbodytd.enemies
 
-
-import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PointF
-import kotlin.math.PI
-import kotlin.math.sin
 
 class Virus(position: PointF) : Enemy(
     position = position,
@@ -19,23 +15,12 @@ class Virus(position: PointF) : Enemy(
     override val type: EnemyType = EnemyType.VIRUS
 
     override fun drawEnemy(canvas: Canvas, paint: Paint) {
-        // Effet de pulsation plus rapide
-        val pulseScale = 1f + 0.15f * sin(animationProgress * 6 * PI.toFloat())
-
-        // Effet de brillance plus intense
-        val glowPaint = Paint(paint).apply {
-            color = Color.argb(150, 255, 0, 0)
-            maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.OUTER)
-        }
-        canvas.drawCircle(position.x, position.y, 15f * pulseScale, glowPaint)
-
-        // Corps principal
+        // Définir la couleur de l'ennemi
         paint.color = Color.rgb(255, 0, 0)
-        canvas.drawCircle(position.x, position.y, 12f * pulseScale, paint)
+        paint.style = Paint.Style.FILL
 
-        // Détails plus visibles
-        paint.color = Color.WHITE
-        canvas.drawCircle(position.x, position.y, 4f * pulseScale, paint)
+        // Dessiner le cercle représentant l'ennemi
+        canvas.drawCircle(position.x, position.y, getEnemyRadius(), paint)
     }
 
     override fun getEnemyRadius(): Float = 12f

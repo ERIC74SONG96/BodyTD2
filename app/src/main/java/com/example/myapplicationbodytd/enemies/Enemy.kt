@@ -2,12 +2,9 @@ package com.example.myapplicationbodytd.enemies
 
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.PointF
-import android.graphics.Shader
-import kotlin.math.sqrt
-
+import kotlin.math.hypot
 
 abstract class Enemy(
     var position: PointF,
@@ -21,7 +18,7 @@ abstract class Enemy(
     private var progress = 0f
     private var isDead = false
     private var isReachedEnd = false
-    protected var animationProgress = 0f
+    private var animationProgress = 0f
     private var damageAnimationProgress = 0f
     private var lastDamageTime = 0f
     private var deathAnimationProgress = 0f
@@ -107,33 +104,19 @@ abstract class Enemy(
             paint
         )
 
-        // Barre de vie avec dégradé
-        val gradient = LinearGradient(
-            position.x - healthBarWidth/2,
-            position.y - 20f,
-            position.x + healthBarWidth/2,
-            position.y - 15f,
-            when {
-                healthPercentage > 0.7f -> Color.GREEN
-                healthPercentage > 0.3f -> Color.YELLOW
-                else -> Color.RED
-            },
-            when {
-                healthPercentage > 0.7f -> Color.rgb(0, 200, 0)
-                healthPercentage > 0.3f -> Color.rgb(200, 200, 0)
-                else -> Color.rgb(200, 0, 0)
-            },
-            Shader.TileMode.CLAMP
-        )
-        paint.shader = gradient
+        // Détermine la couleur selon la vie restante
+        paint.color = when {
+            healthPercentage > 0.7f -> Color.GREEN
+            healthPercentage > 0.3f -> Color.YELLOW
+            else -> Color.RED
+        }
         canvas.drawRect(
-            position.x - healthBarWidth/2,
+            position.x - healthBarWidth / 2,
             position.y - 20f,
-            position.x - healthBarWidth/2 + healthBarWidth * healthPercentage,
+            position.x - healthBarWidth / 2 + healthBarWidth * healthPercentage,
             position.y - 15f,
             paint
         )
-        paint.shader = null
     }
 
     private fun drawDamageEffect(canvas: Canvas, paint: Paint) {
@@ -183,7 +166,7 @@ abstract class Enemy(
     private fun calculateDistance(p1: PointF, p2: PointF): Float {
         val dx = p2.x - p1.x
         val dy = p2.y - p1.y
-        return sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+        return hypot(dx, dy)
     }
 }
 
