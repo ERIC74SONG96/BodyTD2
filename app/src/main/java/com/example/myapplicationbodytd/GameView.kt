@@ -113,6 +113,10 @@ class GameView @JvmOverloads constructor(
             startButtonBounds.set(buttonX, buttonY, buttonX + buttonWidth, buttonY + buttonHeight)
             replayButtonBounds.set(buttonX, buttonY, buttonX + buttonWidth, buttonY + buttonHeight)
 
+            // Mettre à jour les dégradés avec les nouvelles dimensions
+            backgroundGradient.setLocalMatrix(Matrix().apply { setScale(1f, h.toFloat()) })
+            menuGradient.setLocalMatrix(Matrix().apply { setScale(1f, h.toFloat()) })
+            buttonGradient.setLocalMatrix(Matrix().apply { setScale(1f, buttonHeight) })
         }
     }
 
@@ -336,6 +340,12 @@ class GameView @JvmOverloads constructor(
         val towerTypes = listOf(TowerType.BASIC, TowerType.SNIPER, TowerType.RAPID)
         val towerNames = listOf("Basique", "Sniper", "Rapide")
 
+        // Fond du menu avec effet de verre
+        paint.color = Color.argb(180, 0, 0, 0)
+        paint.maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.NORMAL)
+        canvas.drawRoundRect(0f, buttonY, width.toFloat(), height.toFloat(), 30f, 30f, paint)
+        paint.maskFilter = null
+
         // Effet de bordure lumineuse
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 2f
@@ -380,6 +390,11 @@ class GameView @JvmOverloads constructor(
     }
 
     private fun drawGameOver(canvas: Canvas) {
+        // Fond semi-transparent avec effet de flou
+        paint.color = Color.argb(200, 0, 0, 0)
+        paint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        paint.maskFilter = null
 
         // Texte Game Over avec effet amélioré
         paint.color = Color.WHITE
